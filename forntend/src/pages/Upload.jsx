@@ -1,52 +1,59 @@
 import React, { useState } from 'react';
-import { Upload as UploadIcon, File, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import UploadPDF from '../components/pdf/UploadPDF';
+import { Info, ShieldAlert } from 'lucide-react';
 
 const Upload = () => {
-  const [file, setFile] = useState(null);
-  const [isUploading, setIsUploading] = useState(false);
   const navigate = useNavigate();
+  const [error, setError] = useState(null);
 
-  const handleUpload = () => {
-    setIsUploading(true);
-    // Simulate API call
-    setTimeout(() => {
-      setIsUploading(false);
-      navigate('/dashboard');
-    }, 2000);
+  // Security: Callback handled after backend validation and MongoDB storage
+  const handleUploadSuccess = (data) => {
+    if (data && data.docId) {
+      navigate(`/document/${data.docId}`);
+    } else {
+      setError("Invalid response from server. Please try again.");
+    }
   };
 
   return (
-    <div className="max-w-2xl mx-auto py-12">
-      <h2 className="text-3xl font-bold mb-6 dark:text-white">Upload Document</h2>
-      <div className={`border-2 border-dashed rounded-2xl p-12 flex flex-col items-center transition-colors ${file ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/10' : 'border-slate-300 dark:border-slate-700'}`}>
-        {!file ? (
-          <>
-            <UploadIcon size={48} className="text-slate-400 mb-4" />
-            <p className="text-slate-600 dark:text-slate-400 mb-4">Drag and drop your PDF here</p>
-            <input type="file" className="hidden" id="pdf-upload" accept=".pdf" onChange={(e) => setFile(e.target.files[0])} />
-            <label htmlFor="pdf-upload" className="cursor-pointer px-6 py-2 bg-blue-600 text-white rounded-lg">Browse Files</label>
-          </>
-        ) : (
-          <div className="w-full flex items-center justify-between bg-white dark:bg-slate-800 p-4 rounded-lg shadow-sm">
-            <div className="flex items-center gap-3">
-              <File className="text-blue-600" />
-              <span className="font-medium dark:text-white">{file.name}</span>
-            </div>
-            <button onClick={() => setFile(null)}><X size={20} className="text-slate-400 hover:text-red-500" /></button>
-          </div>
-        )}
+    <div className="max-w-4xl mx-auto py-12 px-6">
+      <div className="mb-10 text-center">
+        <h1 className="text-4xl font-extrabold text-slate-900 mb-4">
+          Upload Research Material
+        </h1>
+        <p className="text-slate-600 text-lg">
+          Our AI will parse the content and structure it for your dashboard.
+        </p>
       </div>
-      
-      {file && (
-        <button 
-          onClick={handleUpload}
-          disabled={isUploading}
-          className="w-full mt-6 py-3 bg-blue-600 text-white rounded-lg font-bold disabled:opacity-50"
-        >
-          {isUploading ? "Analyzing with AI..." : "Process Document"}
-        </button>
+
+      {error && (
+        <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl flex items-center gap-3">
+          <ShieldAlert size={20} />
+          <p className="font-medium">{error}</p>
+        </div>
       )}
+
+      <div className="bg-white rounded-3xl shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden">
+        <div className="p-8">
+          <UploadPDF onUploadSuccess={handleUploadSuccess} />
+        </div>
+        
+        {/* Security & Usage Notice */}
+        <div className="bg-slate-50 p-6 border-t border-slate-100 flex gap-4">
+          <div className="text-blue-600 mt-1">
+            <Info size={20} />
+          </div>
+          <div>
+            <h4 className="text-sm font-bold text-slate-800">Security Note</h4>
+            <p className="text-xs text-slate-500 leading-relaxed mt-1">
+              Your files are processed using Google Gemini's secure API. Content is 
+              stored in an encrypted MongoDB instance. We do not use your data 
+              to train public models. Max file size: 10MB.
+            </p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

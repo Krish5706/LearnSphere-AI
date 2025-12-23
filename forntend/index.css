@@ -1,0 +1,8 @@
+/* ✅ DO THIS: Use directives */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ❌ DO NOT DO THIS: @import 'tailwindcss'; */
+
+@import './styles/theme.css';

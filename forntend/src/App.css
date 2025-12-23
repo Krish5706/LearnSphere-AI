@@ -1,0 +1,70 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Ensure the app takes up the full viewport height */
+#root {
+  min-height: 100vh;
+  display: flex;
+  flex-col: column;
+}
+
+/* Smooth scrolling for the whole application */
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: var(--bg-main);
+  color: var(--text-main);
+}
+
+/* Custom Scrollbar for a "Pro" look */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Security: Prevent text selection on sensitive UI elements like API keys */
+.no-select {
+  user-select: none;
+}
+
+/* Global Transitions for Theme Switching */
+body, div, aside, main, header, footer {
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+}
+
+/* Markdown prose overrides for DetailedSummary.jsx */
+.prose {
+  max-width: 85ch;
+  line-height: 1.75;
+}
+
+/* Custom Animation for AI "Thinking" states */
+@keyframes pulse-subtle {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.animate-thinking {
+  animation: pulse-subtle 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
