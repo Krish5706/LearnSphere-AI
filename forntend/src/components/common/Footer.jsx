@@ -56,7 +56,7 @@ const Footer = () => {
                 {/* Bottom Bar */}
                 <div className="pt-8 border-t border-slate-100 flex flex-col md:flex-row justify-between items-center gap-4">
                     <p className="text-slate-400 text-xs">
-                        © {currentYear} LearnSphere AI. All rights reserved. Built with Gemini 1.5 Flash.
+                        © {currentYear} LearnSphere AI. All rights reserved.
                     </p>
                     <div className="flex items-center gap-6 text-slate-400">
                         <a href="#" className="hover:text-slate-600 transition-colors"><Github size={20} /></a>
