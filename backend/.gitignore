@@ -1,0 +1,29 @@
+# Environment Variables (API Keys, Database Credentials)
+.env
+.env.local
+.env.*.local
+.env.development
+.env.test
+.env.production
+
+# Keep the example file to document required variables
+!.env.example
+
+# Local Database Files
+*.sqlite
+*.sqlite3
+*.db
+*.db-journal
+
+# Certificates and Keys
+*.pem
+*.key
+*.p12
+*.pfx
+*.asc
+
+# Google Cloud / AWS / Azure Key Files
+service-account-key.json
+client_secrets.json
+credentials.json
+aws_credentials
