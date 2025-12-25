@@ -4,41 +4,79 @@ const User = require("../models/User");
 const fs = require("fs");
 const path = require("path");
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+// Validate API key before initializing
+if (!process.env.GEMINI_API_KEY) {
+    console.error("❌ GEMINI_API_KEY is missing from environment variables!");
+    console.error("Please add GEMINI_API_KEY to your .env file in the backend directory.");
+}
+
+const genAI = process.env.GEMINI_API_KEY 
+    ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
+    : null;
 
 // 1. UPLOAD & ANALYZE
 exports.uploadAndAnalyze = async (req, res) => {
     try {
         if (!req.file) return res.status(400).json({ message: "No PDF file uploaded" });
 
-        const user = await User.findById(req.user._id);
-        
-        if (user.credits <= 0 && !user.isSubscribed) {
-            return res.status(403).json({ message: "No credits left. Please upgrade." });
+        // Check if API key is configured
+        if (!genAI || !process.env.GEMINI_API_KEY) {
+            return res.status(500).json({ 
+                message: "AI service is not configured. Please set GEMINI_API_KEY in your .env file." 
+            });
         }
 
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        const user = await User.findById(req.user._id);
+        if (user.credits <= 0 && !user.isSubscribed) {
+            return res.status(403).json({ message: "No credits left." });
+        }
+
+        // Using Gemini model - defaults to free-tier compatible model
+        // Can be overridden via GEMINI_MODEL env var
+        // Free tier options: gemini-2.5-flash, gemini-1.5-flash, gemini-1.5-pro
+        // Paid tier options: gemini-3-pro-preview, gemini-3-flash-preview
+        const modelName = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+        console.log(`🤖 Using Gemini model: ${modelName}`);
+        const model = genAI.getGenerativeModel({ model: modelName });
         const pdfData = fs.readFileSync(req.file.path).toString("base64");
 
         const prompt = `
             Analyze this PDF and provide:
             1. A short summary (max 3 sentences).
-            2. 5 key bullet points of insights.
-            3. A quiz with 3 multiple-choice questions in this JSON format:
-               {"summary": "...", "keyPoints": ["...", "..."], "quizzes": [{"question": "...", "options": ["...", "..."], "correctAnswer": "...", "explanation": "..."}]}
-            Return ONLY the raw JSON string.
+            2. 5 key bullet points.
+            3. A quiz with 3 MCQs.
+            4. A Mind Map structure with 'nodes' and 'edges'. 
+               - The 'nodes' should have id, label, and type ('root', 'main', or 'sub').
+               - The 'edges' should connect these IDs.
+            
+            Return ONLY a valid JSON object like this:
+            {
+              "summary": "...",
+              "keyPoints": ["..."],
+              "quizzes": [...],
+              "mindMap": {
+                "nodes": [{"id": "1", "label": "Topic", "type": "root"}, ...],
+                "edges": [{"id": "e1-2", "source": "1", "target": "2"}, ...]
+              }
+            }
         `;
 
-        const result = await model.generateContent([
-            prompt,
-            { inlineData: { data: pdfData, mimeType: "application/pdf" } }
-        ]);
+        // Generate content with PDF
+        const result = await model.generateContent({
+            contents: [{
+                role: "user",
+                parts: [
+                    { text: prompt },
+                    { inlineData: { data: pdfData, mimeType: "application/pdf" } }
+                ]
+            }]
+        });
 
-        // Clean AI response (removes ```json ... ``` blocks if present)
         let textResponse = result.response.text();
         const cleanJson = textResponse.replace(/```json|```/gi, "").trim();
         const aiResponse = JSON.parse(cleanJson);
 
+        // Save with mindMap data
         const newDoc = await Document.create({
             user: user._id,
             fileName: req.file.originalname,
@@ -46,18 +84,38 @@ exports.uploadAndAnalyze = async (req, res) => {
             summary: { short: aiResponse.summary },
             keyPoints: aiResponse.keyPoints,
             quizzes: aiResponse.quizzes,
-            mindMap: { nodes: [], edges: [] }
+            mindMap: aiResponse.mindMap // Saved here!
         });
 
         if (!user.isSubscribed) {
-            user.credits -= 1;
-            await user.save();
+            // Use findByIdAndUpdate to avoid triggering password hashing pre-save hook
+            await User.findByIdAndUpdate(user._id, { $inc: { credits: -1 } });
         }
 
         res.status(201).json(newDoc);
     } catch (err) {
         console.error("AI Error:", err);
-        res.status(500).json({ message: "Error processing document with AI" });
+        
+        // Provide more specific error messages
+        let errorMessage = "Analysis failed";
+        let statusCode = 500;
+        
+        if (err.status === 429 || (err.message && err.message.includes("quota"))) {
+            // Quota/Rate limit exceeded
+            statusCode = 429;
+            const retryDelay = err.errorDetails?.find(d => d['@type']?.includes('RetryInfo'))?.retryDelay || "a few seconds";
+            errorMessage = `API quota exceeded. The model "${process.env.GEMINI_MODEL || 'gemini-2.5-flash'}" is not available on your current plan. Please try: 1) Wait ${retryDelay} and retry, 2) Use a free-tier model (gemini-2.5-flash, gemini-1.5-flash), or 3) Upgrade your Google AI Studio plan.`;
+        } else if (err.message && err.message.includes("API key not valid")) {
+            errorMessage = "Invalid API key. Please check your GEMINI_API_KEY in the .env file.";
+        } else if (err.message && err.message.includes("API_KEY_INVALID")) {
+            errorMessage = "Invalid or expired API key. Please update your GEMINI_API_KEY in the .env file.";
+        } else if (err.message && (err.message.includes("not found") || err.message.includes("404"))) {
+            errorMessage = `Model not found. The model "${process.env.GEMINI_MODEL || 'gemini-2.5-flash'}" may not be available. Try: gemini-2.5-flash, gemini-1.5-flash, or gemini-1.5-pro. Run "node list-models.js" to see available models for your API key.`;
+        } else if (err.message) {
+            errorMessage = `Analysis failed: ${err.message}`;
+        }
+        
+        res.status(statusCode).json({ message: errorMessage });
     }
 };
 

@@ -4,47 +4,52 @@ const bcrypt = require('bcryptjs');
 const userSchema = new mongoose.Schema({
     name: {
         type: String,
-        required: [true, 'Please tell us your name!'],
-        trim: true
+        required: [true, 'Please provide your name']
     },
     email: {
         type: String,
         required: [true, 'Please provide your email'],
         unique: true,
-        lowercase: true,
-        match: [/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/, 'Please fill a valid email address']
+        lowercase: true
     },
     password: {
         type: String,
         required: [true, 'Please provide a password'],
         minlength: 8,
-        select: false // Security: Never return the password in API responses
+        select: false // Prevents password from being sent in API responses
     },
-    // --- CREDIT & SUBSCRIPTION LOGIC ---
     credits: {
         type: Number,
-        default: 5 // Every new user starts with 5 free attempts
+        default: 5 // Default free credits for new users
     },
     isSubscribed: {
         type: Boolean,
         default: false
+    },
+    createdAt: {
+        type: Date,
+        default: Date.now
     }
-}, { timestamps: true });
-
-// SECURITY: Hash the password before saving it to the database
-userSchema.pre('save', async function() {
-    // Only run this function if password was actually modified
-    if (!this.isModified('password')) return;
-
-    // Hash the password with a cost of 12
-    this.password = await bcrypt.hash(this.password, 12);
 });
 
-// SECURITY: Method to check if the entered password matches the hashed password
+// Encrypt password before saving
+userSchema.pre('save', async function(next) {
+    // Only hash password if it's been modified (or is new)
+    if (!this.isModified('password')) {
+        if (next && typeof next === 'function') {
+            return next();
+        }
+        return;
+    }
+    this.password = await bcrypt.hash(this.password, 12);
+    if (next && typeof next === 'function') {
+        next();
+    }
+});
+
+// Method to verify password
 userSchema.methods.correctPassword = async function(candidatePassword, userPassword) {
     return await bcrypt.compare(candidatePassword, userPassword);
 };
 
-const User = mongoose.model('User', userSchema);
-
-module.exports = User;
+module.exports = mongoose.model('User', userSchema);

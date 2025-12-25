@@ -1,0 +1,26 @@
+{
+  "name": "learnsphere-ai",
+  "version": "1.0.0",
+  "description": "LearnSphere AI - Intelligent educational platform",
+  "private": true,
+  "scripts": {
+    "start": "cd backend && npm start",
+    "start:backend": "cd backend && npm start",
+    "start:frontend": "cd forntend && npm run dev",
+    "dev": "cd forntend && npm run dev",
+    "build": "cd forntend && npm run build",
+    "install:all": "cd backend && npm install && cd ../forntend && npm install",
+    "install:backend": "cd backend && npm install",
+    "install:frontend": "cd forntend && npm install"
+  },
+  "keywords": [
+    "ai",
+    "education",
+    "learning",
+    "react",
+    "nodejs"
+  ],
+  "author": "",
+  "license": "MIT"
+}
+

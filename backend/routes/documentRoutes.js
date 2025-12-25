@@ -4,13 +4,18 @@ const docController = require('../controllers/documentController');
 const { protect } = require('../middleware/authMiddleware');
 const upload = require('../middleware/uploadMiddleware');
 
-// Route for uploading a new document
-// protect -> upload.single -> controller
-router.post('/upload', protect, upload.single('pdf'), docController.uploadAndAnalyze);
+/**
+ * PATH: /api/documents
+ */
 
-// Route for getting all documents for the logged-in user
+// 1. Get all documents for the dashboard
 router.get('/', protect, docController.getUserDocuments);
 
+// 2. Upload and Analyze PDF
+// Note: 'pdf' must match the name in your Frontend FormData: formData.append('pdf', file)
+router.post('/upload', protect, upload.single('pdf'), docController.uploadAndAnalyze);
+
+// 3. Delete an analysis
 router.delete('/:id', protect, docController.deleteDocument);
 
 module.exports = router;

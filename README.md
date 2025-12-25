@@ -61,36 +61,93 @@ Follow these steps to get a local copy up and running.
     ```
 
 2.  **Install Dependencies**
-    Navigate to the frontend directory and install the required packages.
+    Install dependencies for both backend and frontend:
     ```bash
-    cd forntend
-    npm install
+    # Install all dependencies (recommended)
+    npm run install:all
+    
+    # Or install separately:
+    cd backend && npm install
+    cd ../forntend && npm install
     ```
 
 ### Environment Variables
 
-To run this project, you will need to add the following environment variables to your `.env` file in the `forntend` directory.
+#### Backend Environment Variables
 
-`VITE_GOOGLE_AI_API_KEY`
+Create a `.env` file in the `backend` directory with the following variables:
 
-1.  Get a free API Key at Google AI Studio.
-2.  Create a `.env` file in the `forntend` directory.
-3.  Enter your API key:
-    ```env
-    VITE_GOOGLE_AI_API_KEY=your_api_key_here
-    ```
+```env
+# Server Configuration
+PORT=3000
+NODE_ENV=development
+
+# MongoDB Connection
+# Get your MongoDB URI from MongoDB Atlas (https://www.mongodb.com/cloud/atlas) or use local MongoDB
+MONGODB_URI=mongodb://localhost:27017/learnsphere-ai
+# Example for MongoDB Atlas:
+# MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/learnsphere-ai?retryWrites=true&w=majority
+
+# JWT Configuration
+# Generate a secure random string for JWT_SECRET
+# You can generate one using: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
+JWT_EXPIRES_IN=7d
+
+# Google Gemini API Key (REQUIRED)
+# Get your free API key from Google AI Studio: https://aistudio.google.com/app/apikey
+GEMINI_API_KEY=your-google-gemini-api-key-here
+```
+
+**Important:** 
+- Get your free Gemini API key from [Google AI Studio](https://aistudio.google.com/app/apikey)
+- Make sure to add `GEMINI_API_KEY` to your backend `.env` file, otherwise PDF analysis will fail
+
+#### Frontend Environment Variables
+
+Create a `.env` file in the `forntend` directory:
+
+```env
+VITE_GOOGLE_AI_API_KEY=your_api_key_here
+```
 
 ## Usage
 
-Start the development server:
+### Starting the Backend Server
 
+From the project root:
 ```bash
-npm run dev
+npm start
 # or
+npm run start:backend
+```
+
+Or from the backend directory:
+```bash
+cd backend
 npm start
 ```
 
-Open your browser and navigate to `http://localhost:3000` (or the port shown in your terminal) to access LearnSphere AI.
+The backend server will start on `http://localhost:3000` (or the port specified in your `.env` file).
+
+### Starting the Frontend Development Server
+
+From the project root:
+```bash
+npm run dev
+# or
+npm run start:frontend
+```
+
+Or from the frontend directory:
+```bash
+cd forntend
+npm run dev
+```
+
+The frontend will typically run on `http://localhost:5173` (Vite's default port).
+
+**Note:** Make sure both the backend and frontend servers are running for the full application to work properly.
 
 ## Roadmap
 
