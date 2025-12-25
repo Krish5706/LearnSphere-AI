@@ -23,11 +23,41 @@ export const AuthProvider = ({ children }) => {
         checkAuth();
     }, []);
 
+    // Login function
+    const login = async (credentials) => {
+        try {
+            const res = await api.post('/auth/login', credentials);
+            localStorage.setItem('token', res.data.token);
+            setUser(res.data.user);
+            return res.data;
+        } catch (err) {
+            throw err;
+        }
+    };
+
+    // Register function
+    const register = async (userData) => {
+        try {
+            const res = await api.post('/auth/register', userData);
+            localStorage.setItem('token', res.data.token);
+            setUser(res.data.user);
+            return res.data;
+        } catch (err) {
+            throw err;
+        }
+    };
+
+    // Logout function
+    const logout = () => {
+        localStorage.removeItem('token');
+        setUser(null);
+    };
+
     // Check if user has access to premium features
     const canUseAI = user?.isSubscribed || (user?.credits > 0);
 
     return (
-        <AuthContext.Provider value={{ user, setUser, loading, isAuthenticated: !!user, canUseAI }}>
+        <AuthContext.Provider value={{ user, setUser, loading, isAuthenticated: !!user, canUseAI, login, register, logout }}>
             {!loading && children}
         </AuthContext.Provider>
     );

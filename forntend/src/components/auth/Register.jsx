@@ -2,13 +2,12 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from "../../context/AuthContext";
 import { UserPlus, Mail, Lock, User, ArrowRight, Loader2, AlertCircle } from 'lucide-react';
-import api from '../../services/api';
 
 const Register = () => {
     const [formData, setFormData] = useState({ name: '', email: '', password: '' });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
-    const { setUser } = useAuth();
+    const { register } = useAuth();
     const navigate = useNavigate();
 
     const handleSubmit = async (e) => {
@@ -17,14 +16,10 @@ const Register = () => {
         setError('');
 
         try {
-            const res = await api.post('/auth/register', formData);
-            localStorage.setItem('token', res.data.token);
-            setUser(res.data.user); // Should contain default 5 credits
-            
-            // Professional Navigation: Replace history to prevent back-loop
+            await register(formData);
             navigate('/dashboard', { replace: true });
         } catch (err) {
-            setError(err.response?.data?.message || 'Registration failed. Try again.');
+            setError(err.response?.data?.message || 'Registration failed');
         } finally {
             setLoading(false);
         }

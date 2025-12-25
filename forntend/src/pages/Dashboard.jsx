@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { getDocuments, deleteDocument } from '../services/api';
+import { getUserDocuments, deleteDocument } from '../services/api';
 import { FileText, Trash2, Calendar, LayoutGrid, List, Search, Loader2 } from 'lucide-react';
 
 const Dashboard = () => {
@@ -14,7 +14,7 @@ const Dashboard = () => {
 
     const fetchData = async () => {
         try {
-            const res = await getDocuments();
+            const res = await getUserDocuments();
             setDocs(res.data);
         } catch (err) {
             console.error("Error fetching library:", err);
