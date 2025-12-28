@@ -8,6 +8,12 @@ const upload = require('../middleware/uploadMiddleware');
  * PATH: /api/documents
  */
 
+// Debug middleware - log all requests to this router
+router.use((req, res, next) => {
+    console.log('📋 Documents router - Method:', req.method, 'Path:', req.path, 'Original URL:', req.originalUrl);
+    next();
+});
+
 // Get all documents for the dashboard
 router.get('/', protect, docController.getUserDocuments);
 
@@ -25,6 +31,12 @@ router.post('/quiz/submit', protect, docController.submitQuizAnswers); // Altern
 
 // Generate report PDF (Step 4: Export results as PDF)
 router.post('/report/generate', protect, docController.generateReportPDF);
+
+// Generate Mind Map (LLM-Free) - MUST BE BEFORE /:id routes
+// Route: GET /api/documents/:id/mindmap (fetch existing mindmap)
+router.get('/:id/mindmap', protect, docController.getMindMap);
+// Route: POST /api/documents/:id/mindmap (generate new mindmap)
+router.post('/:id/mindmap', protect, docController.generateMindMap);
 
 // BACKWARD COMPATIBILITY - Old upload & analyze endpoint
 router.post('/upload-and-analyze', protect, upload.single('pdf'), docController.uploadAndAnalyze);

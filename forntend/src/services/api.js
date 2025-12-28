@@ -32,4 +32,8 @@ export const submitQuizAnswers = (documentId, answers) =>
 export const getQuizData = (documentId) =>
     api.get(`/documents/${documentId}/quiz`);
 
+// Mind Map Services (LLM-Free)
+export const generateMindMap = (documentId) =>
+    api.post(`/documents/${documentId}/mindmap`);
+
 export default api;

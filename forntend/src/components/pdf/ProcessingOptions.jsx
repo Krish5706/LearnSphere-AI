@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { FileText, BookOpen, BrainCircuit, Zap, Loader2 } from 'lucide-react';
-import api from '../../services/api';
+import api, { generateMindMap } from '../../services/api';
 
 const ProcessingOptions = ({ documentId, onProcessingComplete, onCancel }) => {
     const [selectedOption, setSelectedOption] = useState(null);
@@ -27,7 +27,7 @@ const ProcessingOptions = ({ documentId, onProcessingComplete, onCancel }) => {
         {
             id: 'mindmap',
             title: 'Mind Map',
-            description: 'Visualize concepts and their relationships',
+            description: 'Visualize concepts and their relationships (LLM-Free, Offline)',
             icon: BrainCircuit,
             color: 'green',
         },
@@ -50,13 +50,21 @@ const ProcessingOptions = ({ documentId, onProcessingComplete, onCancel }) => {
         setError('');
 
         try {
-            const processingType = selectedOption === 'summary' ? 'comprehensive' : selectedOption;
+            let response;
             
-            const response = await api.post('/documents/process', {
-                documentId,
-                processingType,
-                summaryType: selectedOption === 'summary' ? summaryType : undefined,
-            });
+            // Mind map uses LLM-free endpoint (no credits, no Gemini)
+            if (selectedOption === 'mindmap') {
+                response = await generateMindMap(documentId);
+            } else {
+                // Summary, Quiz, and Comprehensive use Gemini (requires credits)
+                const processingType = selectedOption === 'summary' ? 'comprehensive' : selectedOption;
+                
+                response = await api.post('/documents/process', {
+                    documentId,
+                    processingType,
+                    summaryType: selectedOption === 'summary' ? summaryType : undefined,
+                });
+            }
 
             onProcessingComplete(response.data);
         } catch (err) {
@@ -156,7 +164,11 @@ const ProcessingOptions = ({ documentId, onProcessingComplete, onCancel }) => {
                     {/* Information */}
                     <div className="mb-8 p-4 bg-blue-50 border border-blue-200 rounded-xl">
                         <p className="text-xs text-blue-700 font-bold">
-                            💡 This will use 1 credit from your account. {selectedOption === 'comprehensive' && 'Complete analysis includes all options.'}
+                            {selectedOption === 'mindmap' ? (
+                                <>🧠 Mind maps are generated using LLM-free statistical NLP. No credits required, fully offline!</>
+                            ) : (
+                                <>💡 This will use 1 credit from your account. {selectedOption === 'comprehensive' && 'Complete analysis includes all options.'}</>
+                            )}
                         </p>
                     </div>
 
@@ -184,8 +196,17 @@ const ProcessingOptions = ({ documentId, onProcessingComplete, onCancel }) => {
                                 </>
                             ) : (
                                 <>
-                                    <Zap size={18} />
-                                    Process with Gemini
+                                    {selectedOption === 'mindmap' ? (
+                                        <>
+                                            <BrainCircuit size={18} />
+                                            Generate Mind Map (Offline)
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Zap size={18} />
+                                            Process with Gemini
+                                        </>
+                                    )}
                                 </>
                             )}
                         </button>

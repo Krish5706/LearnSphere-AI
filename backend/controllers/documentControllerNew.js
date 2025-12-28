@@ -6,6 +6,7 @@ const path = require("path");
 const GeminiProcessor = require("../services/geminiProcessor");
 const pdfParseService = require("../services/pdfParseService");
 const pdfExporter = require("../services/pdfExporter");
+const mindMapService = require("../services/mindMapService");
 
 // Validate API key before initializing
 if (!process.env.GEMINI_API_KEY) {
@@ -399,6 +400,137 @@ exports.deleteDocument = async (req, res) => {
         res.status(200).json({ message: "Document deleted successfully" });
     } catch (err) {
         res.status(500).json({ message: "Error deleting document" });
+    }
+};
+
+// ============================================
+// 8. GET MIND MAP (FETCH EXISTING)
+// ============================================
+exports.getMindMap = async (req, res) => {
+    try {
+        const { id: documentId } = req.params;
+        
+        if (!documentId) {
+            return res.status(400).json({ message: "Document ID required" });
+        }
+
+        const doc = await Document.findOne({ _id: documentId, user: req.user._id });
+        if (!doc) {
+            return res.status(404).json({ message: "Document not found" });
+        }
+
+        if (!doc.mindMap || !doc.mindMap.nodes || doc.mindMap.nodes.length === 0) {
+            return res.status(404).json({ 
+                message: "Mind map not found for this document. Please generate it first." 
+            });
+        }
+
+        // Return mind map in React Flow format
+        res.status(200).json({
+            success: true,
+            documentId: doc._id,
+            mindMap: {
+                nodes: doc.mindMap.nodes || [],
+                edges: doc.mindMap.edges || []
+            },
+            metadata: {
+                confidence: doc.mindMap.confidence,
+                processingDetails: doc.processingDetails
+            }
+        });
+    } catch (err) {
+        console.error("Get Mind Map Error:", err);
+        res.status(500).json({ message: "Error fetching mind map" });
+    }
+};
+
+// ============================================
+// 9. GENERATE MIND MAP (LLM-FREE)
+// ============================================
+exports.generateMindMap = async (req, res) => {
+    try {
+        const { id: documentId } = req.params;
+        
+        console.log('========================================');
+        console.log('🧠 MINDMAP ROUTE HIT!');
+        console.log('🧠 Document ID:', documentId);
+        console.log('🧠 Request method:', req.method);
+        console.log('🧠 Request URL:', req.originalUrl);
+        console.log('🧠 Request path:', req.path);
+        console.log('🧠 Request params:', req.params);
+        console.log('========================================');
+
+        if (!documentId) {
+            return res.status(400).json({ message: "Document ID required" });
+        }
+
+        const doc = await Document.findOne({ _id: documentId, user: req.user._id });
+        if (!doc) {
+            return res.status(404).json({ message: "Document not found" });
+        }
+
+        const startTime = Date.now();
+
+        try {
+            console.log('🧠 Starting LLM-free mind map generation for document:', documentId);
+
+            // Extract PDF text
+            const pdfText = await pdfParseService.extractPdfText(doc.fileUrl);
+            
+            if (!pdfText || pdfText.trim().length === 0) {
+                throw new Error("Could not extract text from PDF");
+            }
+
+            // Generate mind map using LLM-free service
+            const mindMap = await mindMapService.generateMindMap(pdfText);
+
+            // Update document with mind map
+            doc.mindMap = mindMap;
+            doc.processingStatus = 'completed';
+            doc.processingDetails = {
+                processedAt: new Date(),
+                processingTime: Date.now() - startTime,
+                method: 'LLM-Free Statistical NLP'
+            };
+
+            await doc.save();
+
+            // Return React Flow compatible format
+            res.status(200).json({
+                success: true,
+                message: "Mind map generated successfully!",
+                documentId: doc._id,
+                mindMap: {
+                    nodes: mindMap.nodes,
+                    edges: mindMap.edges
+                },
+                metadata: {
+                    confidence: mindMap.confidence,
+                    processingTime: Date.now() - startTime,
+                    nodesCount: mindMap.nodes.length,
+                    edgesCount: mindMap.edges.length,
+                    method: 'LLM-Free Statistical NLP'
+                }
+            });
+
+        } catch (error) {
+            console.error("Mind Map Generation Error:", error);
+            
+            doc.processingStatus = 'failed';
+            doc.processingDetails = {
+                processedAt: new Date(),
+                processingTime: Date.now() - startTime,
+                error: error.message,
+            };
+            await doc.save();
+
+            res.status(500).json({ 
+                message: `Mind map generation failed: ${error.message}` 
+            });
+        }
+    } catch (err) {
+        console.error("Server Error:", err);
+        res.status(500).json({ message: "Server error during mind map generation" });
     }
 };
 

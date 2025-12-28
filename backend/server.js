@@ -26,6 +26,14 @@ app.use(morgan('dev'));  // Logs requests to the console for easier debugging
 // This allows the frontend to display the PDF using a URL
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
+// Debug: Log all incoming requests BEFORE routes
+app.use((req, res, next) => {
+    if (req.path.includes('mindmap') || req.path.includes('documents')) {
+        console.log('🔍 INCOMING REQUEST - Method:', req.method, 'Path:', req.path, 'Original URL:', req.originalUrl);
+    }
+    next();
+});
+
 // 2. DATABASE CONNECTION
 mongoose.connect(process.env.MONGODB_URI)
     .then(() => console.log('✅ MongoDB Connected: Study Vault is Ready'))

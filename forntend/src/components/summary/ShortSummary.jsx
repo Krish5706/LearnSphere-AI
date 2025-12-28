@@ -13,8 +13,20 @@ const ShortSummary = ({ text }) => {
 
   // Parse the text into title and bullet points
   const lines = text ? text.split('\n').filter(line => line.trim()) : [];
-  const title = lines[0] || 'Document Summary';
-  const bulletPoints = lines.slice(1).filter(line => line.trim().startsWith('-') || line.trim().startsWith('•')).slice(0, 7);
+  const allBulletPoints = lines.filter(line => line.trim().startsWith('-') || line.trim().startsWith('•'));
+
+  // If we have bullet points, use them directly; otherwise, create a title and look for bullet points
+  let title = 'Document Summary';
+  let bulletPoints = [];
+
+  if (allBulletPoints.length > 0) {
+    // AI generated bullet points directly
+    bulletPoints = allBulletPoints.slice(0, 7);
+  } else {
+    // Fallback: first line as title, rest as potential bullet points
+    title = lines[0] || 'Document Summary';
+    bulletPoints = lines.slice(1).filter(line => line.trim().startsWith('-') || line.trim().startsWith('•')).slice(0, 7);
+  }
 
   return (
     <div className="bg-white rounded-3xl border border-slate-200 shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 animate-in slide-in-from-bottom-2">
@@ -40,7 +52,7 @@ const ShortSummary = ({ text }) => {
 
       {/* Content Area */}
       <div className="p-8">
-        {bulletPoints.length > 0 ? (
+        {text && text !== 'Short summary not available' && bulletPoints.length > 0 ? (
           <div className="space-y-6">
             <ul className="space-y-3">
               {bulletPoints.map((point, index) => (
@@ -50,6 +62,14 @@ const ShortSummary = ({ text }) => {
                 </li>
               ))}
             </ul>
+          </div>
+        ) : text === 'Short summary not available' ? (
+          <div className="text-center py-12">
+            <div className="w-16 h-16 bg-amber-50 text-amber-400 rounded-full flex items-center justify-center mx-auto mb-4">
+              <FileText size={32} />
+            </div>
+            <p className="text-slate-500 font-medium">Summary not available</p>
+            <p className="text-xs text-slate-400 mt-1">Please try re-processing the document</p>
           </div>
         ) : (
           <div className="text-center py-12">

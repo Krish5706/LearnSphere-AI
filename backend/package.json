@@ -19,9 +19,12 @@
     "express": "^5.2.1",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.3",
+    "ml-distance": "^4.0.1",
+    "ml-matrix": "^6.12.1",
     "mongoose": "^9.0.2",
     "morgan": "^1.10.1",
     "multer": "^2.0.2",
+    "natural": "^8.1.0",
     "pdf-parse": "^1.1.1",
     "pdfkit": "^0.17.2"
   }
