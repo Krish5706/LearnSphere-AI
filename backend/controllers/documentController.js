@@ -6,7 +6,7 @@ const path = require("path");
 
 // Validate API key before initializing
 if (!process.env.GEMINI_API_KEY) {
-    console.error("❌ GEMINI_API_KEY is missing from environment variables!");
+    console.error("GEMINI_API_KEY is missing from environment variables!");
     console.error("Please add GEMINI_API_KEY to your .env file in the backend directory.");
 }
 
@@ -36,7 +36,7 @@ exports.uploadAndAnalyze = async (req, res) => {
         // Free tier options: gemini-1.5-flash, gemini-1.5-pro, gemini-2.5-flash (may have quota limits)
         // Paid tier options: gemini-3-pro-preview, gemini-3-flash-preview
         const modelName = process.env.GEMINI_MODEL || "gemini-1.5-pro";
-        console.log(`🤖 Using Gemini model: ${modelName}`);
+        console.log(`Using Gemini model: ${modelName}`);
         const model = genAI.getGenerativeModel({ model: modelName });
         const pdfData = fs.readFileSync(req.file.path).toString("base64");
 

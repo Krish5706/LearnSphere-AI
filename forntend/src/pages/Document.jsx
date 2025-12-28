@@ -1,11 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { getDocumentById } from '../services/api';
+import api, { getDocumentById } from '../services/api';
 import ShortSummary from '../components/summary/ShortSummary';
+import MediumSummary from '../components/summary/MediumSummary';
+import DetailedSummary from '../components/summary/DetailedSummary';
 import MindMap from '../components/mindmap/MindMap';
-import QuizList from '../components/quiz/QuizList';
-import { FileText, BrainCircuit, GraduationCap, Loader2, ChevronLeft, Lock, Sparkles } from 'lucide-react';
+import QuizListNew from '../components/quiz/QuizListNew';
+import QuizResultAnalysis from '../components/quiz/QuizResultAnalysis';
+import { FileText, BrainCircuit, GraduationCap, Loader2, ChevronLeft, Lock, Sparkles, BarChart3 } from 'lucide-react';
 
 const Document = () => {
     const { id } = useParams();
@@ -14,6 +17,19 @@ const Document = () => {
     const [doc, setDoc] = useState(null);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('summary');
+    const [summaryType, setSummaryType] = useState('short');
+
+    const handleDownloadReport = async (reportType) => {
+        try {
+            const response = await api.post('/documents/report/generate', {
+                documentId: id,
+                reportType: reportType || 'comprehensive'
+            });
+            // File downloads automatically
+        } catch (err) {
+            console.error('Download failed:', err);
+        }
+    };
 
     useEffect(() => {
         const fetchDoc = async () => {
@@ -67,7 +83,63 @@ const Document = () => {
 
             {/* Content Area */}
             <div className="p-8 max-w-7xl mx-auto">
-                {activeTab === 'summary' && <ShortSummary text={doc.summary.short} />}
+                {activeTab === 'summary' && (
+                    <div className="space-y-6">
+                        {/* Summary Type Selector */}
+                        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                            <div className="bg-slate-50 px-6 py-4 border-b border-slate-200">
+                                <h3 className="font-bold text-slate-800 mb-4">Choose Summary Length</h3>
+                                <div className="flex bg-slate-100 p-1 rounded-xl max-w-md">
+                                    <button
+                                        onClick={() => setSummaryType('short')}
+                                        className={`flex-1 px-4 py-2 rounded-lg text-sm font-bold transition-all ${
+                                            summaryType === 'short'
+                                                ? 'bg-white text-blue-600 shadow-sm'
+                                                : 'text-slate-600 hover:text-slate-900'
+                                        }`}
+                                    >
+                                        Short
+                                    </button>
+                                    <button
+                                        onClick={() => setSummaryType('medium')}
+                                        className={`flex-1 px-4 py-2 rounded-lg text-sm font-bold transition-all ${
+                                            summaryType === 'medium'
+                                                ? 'bg-white text-blue-600 shadow-sm'
+                                                : 'text-slate-600 hover:text-slate-900'
+                                        }`}
+                                    >
+                                        Medium
+                                    </button>
+                                    <button
+                                        onClick={() => setSummaryType('detailed')}
+                                        className={`flex-1 px-4 py-2 rounded-lg text-sm font-bold transition-all ${
+                                            summaryType === 'detailed'
+                                                ? 'bg-white text-blue-600 shadow-sm'
+                                                : 'text-slate-600 hover:text-slate-900'
+                                        }`}
+                                    >
+                                        Detailed
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Summary Content */}
+                        {summaryType === 'short' && <ShortSummary text={doc.summary?.short || 'Short summary not available'} />}
+                        {summaryType === 'medium' && (
+                            <MediumSummary
+                                content={doc.summary?.medium || 'Medium summary not available'}
+                                keyInsights={doc.keyPoints || []}
+                            />
+                        )}
+                        {summaryType === 'detailed' && (
+                            <DetailedSummary
+                                content={doc.summary?.detailed || 'Detailed summary not available'}
+                                fileName={doc.fileName}
+                            />
+                        )}
+                    </div>
+                )}
 
                 {(activeTab === 'mindmap' || activeTab === 'quiz') && (
                     <div className="relative">
@@ -90,7 +162,13 @@ const Document = () => {
                         {/* Actual Content (Blurred if restricted) */}
                         <div className={isRestricted ? "blur-lg grayscale pointer-events-none select-none" : ""}>
                             {activeTab === 'mindmap' && <MindMap data={doc.mindMap} />}
-                            {activeTab === 'quiz' && <QuizList quizzes={doc.quizzes} />}
+                            {activeTab === 'quiz' && (
+                                <QuizListNew 
+                                    quizzes={doc.quizzes}
+                                    documentId={doc._id}
+                                    onDownloadReport={handleDownloadReport}
+                                />
+                            )}
                         </div>
                     </div>
                 )}

@@ -10,6 +10,7 @@ import Upload from './pages/Upload';
 import Document from './pages/Document';
 import Settings from './pages/Settings';
 import Profile from './pages/Profile';
+import Quiz from './pages/Quiz';
 
 // Auth Imports
 import Login from './components/auth/Login';
@@ -53,6 +54,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <Document />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/quiz/:documentId" 
+              element={
+                <ProtectedRoute>
+                  <Quiz />
                 </ProtectedRoute>
               } 
             />

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import UploadPDF from '../components/pdf/UploadPDF';
+import UploadPDFNew from '../components/pdf/UploadPDFNew';
 import { Info, ShieldAlert } from 'lucide-react';
 
 const Upload = () => {
@@ -36,7 +36,7 @@ const Upload = () => {
 
       <div className="bg-white rounded-3xl shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden">
         <div className="p-8">
-          <UploadPDF onUploadSuccess={handleUploadSuccess} />
+          <UploadPDFNew />
         </div>
         
         {/* Security & Usage Notice */}
