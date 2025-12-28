@@ -35,7 +35,7 @@ exports.uploadAndAnalyze = async (req, res) => {
         // Can be overridden via GEMINI_MODEL env var
         // Free tier options: gemini-1.5-flash, gemini-1.5-pro, gemini-2.5-flash (may have quota limits)
         // Paid tier options: gemini-3-pro-preview, gemini-3-flash-preview
-        const modelName = process.env.GEMINI_MODEL || "gemini-1.5-flash";
+        const modelName = process.env.GEMINI_MODEL || "gemini-1.5-pro";
         console.log(`🤖 Using Gemini model: ${modelName}`);
         const model = genAI.getGenerativeModel({ model: modelName });
         const pdfData = fs.readFileSync(req.file.path).toString("base64");
@@ -104,7 +104,7 @@ exports.uploadAndAnalyze = async (req, res) => {
             // Quota/Rate limit exceeded
             statusCode = 429;
             const retryDelay = err.errorDetails?.find(d => d['@type']?.includes('RetryInfo'))?.retryDelay || "a few seconds";
-            errorMessage = `API quota exceeded. The model "${process.env.GEMINI_MODEL || 'gemini-1.5-flash'}" is not available on your current plan. Please try: 1) Wait ${retryDelay} and retry, 2) Use a free-tier model (gemini-1.5-flash, gemini-1.5-pro), or 3) Upgrade your Google AI Studio plan.`;
+            errorMessage = `API quota exceeded. The model "${process.env.GEMINI_MODEL || 'gemini-1.5-pro'}" is not available on your current plan. Please try: 1) Wait ${retryDelay} and retry, 2) Use a free-tier model (gemini-1.5-pro, gemini-1.5-flash), or 3) Upgrade your Google AI Studio plan.`;
         } else if (err.message && err.message.includes("API key not valid")) {
             errorMessage = "Invalid API key. Please check your GEMINI_API_KEY in the .env file.";
         } else if (err.message && err.message.includes("API_KEY_INVALID")) {
