@@ -13,6 +13,26 @@ exports.getProfile = async (req, res) => {
     }
 };
 
+exports.updateProfile = async (req, res) => {
+    try {
+        const { name } = req.body;
+        if (!name || name.trim().length === 0) {
+            return res.status(400).json({ message: "Name is required" });
+        }
+        const user = await User.findByIdAndUpdate(
+            req.user._id,
+            { name: name.trim() },
+            { new: true, runValidators: true }
+        );
+        res.status(200).json({
+            status: 'success',
+            data: { user }
+        });
+    } catch (err) {
+        res.status(500).json({ message: "Error updating profile" });
+    }
+};
+
 // Route for when a user completes a "Mock Payment" or "Upgrade"
 exports.upgradeAccount = async (req, res) => {
     try {

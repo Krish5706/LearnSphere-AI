@@ -9,6 +9,7 @@ import Dashboard from './pages/Dashboard';
 import Upload from './pages/Upload';
 import Document from './pages/Document';
 import Settings from './pages/Settings';
+import Profile from './pages/Profile';
 
 // Auth Imports
 import Login from './components/auth/Login';
@@ -55,13 +56,21 @@ function App() {
                 </ProtectedRoute>
               } 
             />
-            <Route 
-              path="/settings" 
+            <Route
+              path="/settings"
               element={
                 <ProtectedRoute>
                   <Settings />
                 </ProtectedRoute>
-              } 
+              }
+            />
+            <Route
+              path="/profile"
+              element={
+                <ProtectedRoute>
+                  <Profile />
+                </ProtectedRoute>
+              }
             />
 
             {/* Fallback for 404 - Security best practice: redirect to home or custom 404 */}

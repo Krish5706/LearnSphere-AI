@@ -9,6 +9,9 @@ router.use(protect);
 // GET /api/users/profile - Fetches current user data and credits
 router.get('/profile', userController.getProfile);
 
+// PUT /api/users/profile - Updates user profile (e.g., name)
+router.put('/profile', userController.updateProfile);
+
 // PATCH /api/users/upgrade - Mock route to add credits or change subscription
 router.patch('/upgrade', userController.upgradeAccount);
 
