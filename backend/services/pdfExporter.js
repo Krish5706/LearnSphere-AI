@@ -47,6 +47,9 @@ class PDFExporter {
                 case 'quiz':
                     this._addQuizContent(doc, data);
                     break;
+                case 'mindmap':
+                    this._addMindMapContent(doc, data);
+                    break;
                 case 'comprehensive':
                     this._addComprehensiveContent(doc, data);
                     break;
@@ -236,6 +239,12 @@ class PDFExporter {
             doc.moveDown();
         }
 
+        // Mind Map Section
+        if (data.mindMap && data.mindMap.nodes && data.mindMap.nodes.length > 0) {
+            this._addMindMapContent(doc, data, true);
+            doc.moveDown();
+        }
+
         // Quiz Results
         if (data.quizAnalysis) {
             const stats = data.quizAnalysis;
@@ -254,6 +263,53 @@ class PDFExporter {
                 });
             }
         }
+    }
+
+    /**
+     * Add mind map content (Hierarchical List View)
+     * @private
+     */
+    _addMindMapContent(doc, data, isSection = false) {
+        if (!isSection) {
+            doc.fontSize(24).font('Helvetica-Bold').text('Mind Map Structure', { align: 'center' });
+            doc.moveDown(1);
+        } else {
+            doc.fontSize(18).font('Helvetica-Bold').fillColor('#1e40af').text('3. Mind Map Structure');
+            doc.moveDown(0.5);
+        }
+
+        const nodes = data.mindMap.nodes || [];
+        const edges = data.mindMap.edges || [];
+
+        if (nodes.length === 0) {
+            doc.fontSize(11).font('Helvetica').fillColor('#666').text('No mind map data available.');
+            return;
+        }
+
+        // Find root
+        const root = nodes.find(n => n.type === 'root') || nodes[0];
+        
+        doc.fontSize(14).font('Helvetica-Bold').fillColor('#000').text(`◎ ${root.data.label}`);
+        doc.moveDown(0.2);
+
+        // Find Level 1 (connected to root)
+        const level1Edges = edges.filter(e => e.source === root.id);
+        level1Edges.forEach(edge => {
+            const node = nodes.find(n => n.id === edge.target);
+            if (node) {
+                doc.fontSize(12).font('Helvetica-Bold').fillColor('#333').text(`    ├─ ${node.data.label}`);
+                
+                // Find Level 2
+                const level2Edges = edges.filter(e => e.source === node.id);
+                level2Edges.forEach(subEdge => {
+                    const subNode = nodes.find(n => n.id === subEdge.target);
+                    if (subNode) {
+                        doc.fontSize(11).font('Helvetica').fillColor('#555').text(`    │    └─ ${subNode.data.label}`);
+                    }
+                });
+                doc.moveDown(0.2);
+            }
+        });
     }
 
     /**

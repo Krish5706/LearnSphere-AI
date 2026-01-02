@@ -141,9 +141,16 @@ const Document = () => {
                     </div>
                 )}
 
-                {(activeTab === 'mindmap' || activeTab === 'quiz') && (
+                {activeTab === 'mindmap' && (
+                    <div className="relative h-[600px] w-full">
+                        {/* Mind Map is always free, no paywall */}
+                        <MindMap data={doc.mindMap} />
+                    </div>
+                )}
+
+                {activeTab === 'quiz' && (
                     <div className="relative">
-                        {/* THE PAYWALL OVERLAY */}
+                        {/* THE PAYWALL OVERLAY - Only for Quiz */}
                         {isRestricted && (
                             <div className="absolute inset-0 z-50 flex items-center justify-center bg-white/60 backdrop-blur-md rounded-3xl border-2 border-dashed border-slate-200">
                                 <div className="text-center p-8 bg-white shadow-2xl rounded-3xl max-w-md border border-slate-100">
@@ -151,7 +158,7 @@ const Document = () => {
                                         <Sparkles size={32} />
                                     </div>
                                     <h2 className="text-2xl font-black text-slate-900 mb-2">Unlock Pro Analysis</h2>
-                                    <p className="text-slate-500 mb-6 text-sm">You've used your 5 free credits. Subscribe now to unlock full Mind Maps, Quizzes, and Unlimited PDF processing.</p>
+                                    <p className="text-slate-500 mb-6 text-sm">You've used your 5 free credits. Subscribe now to unlock Quizzes and Unlimited PDF processing.</p>
                                     <Link to="/pricing" className="block w-full py-4 bg-blue-600 text-white rounded-2xl font-bold shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all">
                                         Upgrade to Pro
                                     </Link>
@@ -161,14 +168,11 @@ const Document = () => {
 
                         {/* Actual Content (Blurred if restricted) */}
                         <div className={isRestricted ? "blur-lg grayscale pointer-events-none select-none" : ""}>
-                            {activeTab === 'mindmap' && <MindMap data={doc.mindMap} />}
-                            {activeTab === 'quiz' && (
-                                <QuizListNew 
-                                    quizzes={doc.quizzes}
-                                    documentId={doc._id}
-                                    onDownloadReport={handleDownloadReport}
-                                />
-                            )}
+                            <QuizListNew
+                                quizzes={doc.quizzes}
+                                documentId={doc._id}
+                                onDownloadReport={handleDownloadReport}
+                            />
                         </div>
                     </div>
                 )}

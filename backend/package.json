@@ -26,6 +26,7 @@
     "multer": "^2.0.2",
     "natural": "^8.1.0",
     "pdf-parse": "^1.1.1",
-    "pdfkit": "^0.17.2"
+    "pdfkit": "^0.17.2",
+    "safer-buffer": "^2.1.2"
   }
 }

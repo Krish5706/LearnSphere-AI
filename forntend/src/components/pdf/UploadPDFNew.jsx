@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { Upload, FileText, Sparkles, X, Loader2, AlertCircle, CheckCircle } from 'lucide-react';
@@ -8,13 +8,15 @@ import ProcessingOptions from './ProcessingOptions';
 const UploadPDF = () => {
     const { user, canUseAI } = useAuth();
     const navigate = useNavigate();
-    
+
     const [file, setFile] = useState(null);
     const [isUploading, setIsUploading] = useState(false);
     const [error, setError] = useState('');
     const [showProcessingOptions, setShowProcessingOptions] = useState(false);
     const [uploadedDocId, setUploadedDocId] = useState(null);
     const [uploadSuccess, setUploadSuccess] = useState(false);
+    const [isDragOver, setIsDragOver] = useState(false);
+    const fileInputRef = useRef(null);
 
     const handleFileChange = (e) => {
         const selectedFile = e.target.files[0];
@@ -59,6 +61,29 @@ const UploadPDF = () => {
         setFile(null);
         setUploadedDocId(null);
         setUploadSuccess(false);
+    };
+
+    const handleDragOver = (e) => {
+        e.preventDefault();
+        setIsDragOver(true);
+    };
+
+    const handleDragLeave = (e) => {
+        e.preventDefault();
+        setIsDragOver(false);
+    };
+
+    const handleDrop = (e) => {
+        e.preventDefault();
+        setIsDragOver(false);
+
+        const droppedFile = e.dataTransfer.files[0];
+        if (droppedFile && droppedFile.type === 'application/pdf') {
+            setFile(droppedFile);
+            setError('');
+        } else {
+            setError('Please drop a valid PDF file.');
+        }
     };
 
     return (
