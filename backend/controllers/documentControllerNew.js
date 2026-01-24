@@ -6,7 +6,6 @@ const path = require("path");
 const GeminiProcessor = require("../services/geminiProcessor");
 const pdfParseService = require("../services/pdfParseService");
 const pdfExporter = require("../services/pdfExporter");
-const mindMapService = require("../services/mindMapService");
 
 // Validate API key before initializing
 if (!process.env.GEMINI_API_KEY) {
@@ -88,7 +87,7 @@ exports.uploadPDF = async (req, res) => {
 // ============================================
 exports.processPDF = async (req, res) => {
     try {
-        const { documentId, processingType } = req.body; // 'summary', 'quiz', 'mindmap', or 'comprehensive'
+        const { documentId, processingType } = req.body; // 'summary', 'quiz', or 'comprehensive'
 
         if (!documentId || !processingType) {
             return res.status(400).json({ message: "Document ID and processing type required" });
@@ -130,11 +129,18 @@ exports.processPDF = async (req, res) => {
 
             if (processingType === 'summary' || processingType === 'comprehensive') {
                 console.log('📝 Generating summaries...');
-                results.summary = {
-                    short: await processor.generateSummary(pdfText, 'short'),
-                    medium: await processor.generateSummary(pdfText, 'medium'),
-                    detailed: await processor.generateSummary(pdfText, 'detailed'),
-                };
+                const summaryType = req.body.summaryType;
+                results.summary = {};
+
+                if (processingType === 'comprehensive') {
+                    // Generate all summaries for comprehensive analysis
+                    results.summary.short = await processor.generateSummary(pdfText, 'short');
+                    results.summary.medium = await processor.generateSummary(pdfText, 'medium');
+                    results.summary.detailed = await processor.generateSummary(pdfText, 'detailed');
+                } else if (summaryType) {
+                    // Generate only the selected summary type
+                    results.summary[summaryType] = await processor.generateSummary(pdfText, summaryType);
+                }
                 results.keyPoints = await processor.extractKeyPoints(pdfText, 8);
             }
 
@@ -143,18 +149,17 @@ exports.processPDF = async (req, res) => {
                 results.quizzes = await processor.generateQuiz(pdfText, 5);
             }
 
-            if (processingType === 'mindmap' || processingType === 'comprehensive') {
-                console.log('🧠 Generating mind map...');
-                // Use Hybrid Service (LLM-Free) for consistent results
-                results.mindMap = await mindMapService.generateMindMap(pdfText);
-            }
-
+            
             // Update document with results
-            doc.summary = results.summary || doc.summary;
+            // Merge new summary results with existing ones to avoid overwriting.
+            if (results.summary) {
+                // Convert Mongoose subdocument to a plain object before merging to ensure atomicity
+                const existingSummary = doc.summary ? doc.summary.toObject() : {};
+                doc.summary = { ...existingSummary, ...results.summary };
+            }
             doc.keyPoints = results.keyPoints || doc.keyPoints;
             doc.quizzes = results.quizzes || doc.quizzes;
-            doc.mindMap = results.mindMap || doc.mindMap;
-            doc.processingStatus = 'completed';
+                        doc.processingStatus = 'completed';
             doc.processingType = processingType;
             doc.processingDetails = {
                 processedAt: new Date(),
@@ -309,8 +314,7 @@ exports.generateReportPDF = async (req, res) => {
             fileName: doc.fileName,
             summary: doc.summary,
             keyPoints: doc.keyPoints,
-            mindMap: doc.mindMap, // Pass mind map data to exporter
-            quizAnalysis: doc.quizResults?.[doc.quizResults.length - 1] || null, // Latest quiz result
+                        quizAnalysis: doc.quizResults?.[doc.quizResults.length - 1] || null, // Latest quiz result
             answeredQuestions: doc.quizzes?.map((q, idx) => ({
                 ...q,
                 userAnswer: doc.quizResults?.[0]?.userAnswers?.[idx]?.selectedAnswer,
@@ -409,179 +413,14 @@ exports.deleteDocument = async (req, res) => {
 // ============================================
 // 8. GET MIND MAP (FETCH EXISTING)
 // ============================================
-exports.getMindMap = async (req, res) => {
-    try {
-        const { id: documentId } = req.params;
-        
-        if (!documentId) {
-            return res.status(400).json({ message: "Document ID required" });
-        }
-
-        const doc = await Document.findOne({ _id: documentId, user: req.user._id });
-        if (!doc) {
-            return res.status(404).json({ message: "Document not found" });
-        }
-
-        if (!doc.mindMap || !doc.mindMap.nodes || doc.mindMap.nodes.length === 0) {
-            return res.status(404).json({ 
-                message: "Mind map not found for this document. Please generate it first." 
-            });
-        }
-
-        // Return mind map in React Flow format
-        res.status(200).json({
-            success: true,
-            documentId: doc._id,
-            mindMap: {
-                nodes: doc.mindMap.nodes || [],
-                edges: doc.mindMap.edges || []
-            },
-            metadata: {
-                confidence: doc.mindMap.confidence,
-                processingDetails: doc.processingDetails
-            }
-        });
-    } catch (err) {
-        console.error("Get Mind Map Error:", err);
-        res.status(500).json({ message: "Error fetching mind map" });
-    }
-};
 
 // ============================================
 // 9. GENERATE MIND MAP (LLM-FREE)
 // ============================================
-exports.generateMindMap = async (req, res) => {
-    try {
-        const { id: documentId } = req.params;
-
-        console.log('========================================');
-        console.log('🧠 [CONTROLLER] MINDMAP ROUTE HIT!');
-        console.log('🧠 [CONTROLLER] Document ID:', documentId);
-        console.log('🧠 [CONTROLLER] User ID:', req.user?._id);
-        console.log('🧠 [CONTROLLER] Request method:', req.method);
-        console.log('🧠 [CONTROLLER] Request URL:', req.originalUrl);
-        console.log('========================================');
-
-        if (!documentId) {
-            console.log('🧠 [CONTROLLER] ERROR: Document ID required');
-            return res.status(400).json({ message: "Document ID required" });
-        }
-
-        const doc = await Document.findOne({ _id: documentId, user: req.user._id });
-        if (!doc) {
-            console.log('🧠 [CONTROLLER] ERROR: Document not found for ID:', documentId);
-            return res.status(404).json({ message: "Document not found" });
-        }
-
-        console.log('🧠 [CONTROLLER] Document found:', doc.fileName);
-        console.log('🧠 [CONTROLLER] Document file URL:', doc.fileUrl);
-
-        const startTime = Date.now();
-
-        try {
-            console.log('🧠 [CONTROLLER] Starting LLM-free mind map generation for document:', documentId);
-
-            // Extract PDF text
-            console.log('🧠 [CONTROLLER] Extracting PDF text from:', doc.fileUrl);
-            const pdfText = await pdfParseService.extractPdfText(doc.fileUrl);
-            console.log('🧠 [CONTROLLER] PDF text extracted, length:', pdfText?.length || 0);
-
-            if (!pdfText || pdfText.trim().length === 0) {
-                console.log('🧠 [CONTROLLER] ERROR: No text extracted from PDF');
-                throw new Error("Could not extract text from PDF");
-            }
-
-            // Generate mind map using LLM-free service
-            console.log('🧠 [CONTROLLER] Calling mind map service...');
-            const mindMap = await mindMapService.generateMindMap(pdfText);
-
-            console.log(`🧠 [CONTROLLER] Mind map generated: ${mindMap.nodes?.length || 0} nodes, ${mindMap.edges?.length || 0} edges`);
-            console.log('🧠 [CONTROLLER] Mind map metadata:', mindMap.metadata);
-
-            // Update document with mind map
-            console.log('🧠 [CONTROLLER] Saving mind map to database...');
-            doc.mindMap = mindMap;
-            doc.processingStatus = 'completed';
-            doc.processingDetails = {
-                processedAt: new Date(),
-                processingTime: Date.now() - startTime,
-                method: 'LLM-Free Statistical NLP'
-            };
-
-            await doc.save();
-            console.log('🧠 [CONTROLLER] Mind map saved to database successfully');
-
-            // Return React Flow compatible format
-            const responseData = {
-                success: true,
-                message: "Mind map generated successfully!",
-                documentId: doc._id,
-                mindMap: {
-                    nodes: mindMap.nodes || [],
-                    edges: mindMap.edges || []
-                },
-                metadata: {
-                    confidence: mindMap.confidence,
-                    processingTime: Date.now() - startTime,
-                    nodesCount: mindMap.nodes?.length || 0,
-                    edgesCount: mindMap.edges?.length || 0,
-                    method: 'LLM-Free Statistical NLP'
-                }
-            };
-
-            console.log('🧠 [CONTROLLER] Sending response with mind map data');
-            res.status(200).json(responseData);
-
-        } catch (error) {
-            console.error("🧠 [CONTROLLER] Mind Map Generation Error:", error);
-            console.error("🧠 [CONTROLLER] Error stack:", error.stack);
-
-            doc.processingStatus = 'failed';
-            doc.processingDetails = {
-                processedAt: new Date(),
-                processingTime: Date.now() - startTime,
-                error: error.message,
-            };
-            await doc.save();
-
-            console.log('🧠 [CONTROLLER] Saved error status to database');
-            res.status(500).json({
-                message: `Mind map generation failed: ${error.message}`
-            });
-        }
-    } catch (err) {
-        console.error("🧠 [CONTROLLER] Server Error:", err);
-        console.error("🧠 [CONTROLLER] Server error stack:", err.stack);
-        res.status(500).json({ message: "Server error during mind map generation" });
-    }
-};
 
 // ============================================
 // 10. UPDATE MIND MAP (MANUAL EDITS)
 // ============================================
-exports.updateMindMap = async (req, res) => {
-    try {
-        const { id: documentId } = req.params;
-        const { nodes, edges } = req.body;
-
-        if (!documentId || !nodes || !edges) {
-            return res.status(400).json({ message: "Missing required data" });
-        }
-
-        const doc = await Document.findOne({ _id: documentId, user: req.user._id });
-        if (!doc) {
-            return res.status(404).json({ message: "Document not found" });
-        }
-
-        doc.mindMap = { nodes, edges };
-        await doc.save();
-
-        res.status(200).json({ message: "Mind map updated successfully", mindMap: doc.mindMap });
-    } catch (err) {
-        console.error("Update Mind Map Error:", err);
-        res.status(500).json({ message: "Error updating mind map" });
-    }
-};
 
 // ============================================
 // BACKWARD COMPATIBILITY - OLD UPLOAD & ANALYZE
@@ -612,20 +451,13 @@ exports.uploadAndAnalyze = async (req, res) => {
             1. A short summary (max 3 sentences).
             2. 5 key bullet points.
             3. A quiz with 3 MCQs.
-            4. A Mind Map structure with 'nodes' and 'edges'. 
-               - The 'nodes' should have id, label, and type ('root', 'main', or 'sub').
-               - The 'edges' should connect these IDs.
-            
+                        
             Return ONLY a valid JSON object like this:
             {
               "summary": "...",
               "keyPoints": ["..."],
               "quizzes": [...],
-              "mindMap": {
-                "nodes": [{"id": "1", "label": "Topic", "type": "root"}, ...],
-                "edges": [{"id": "e1-2", "source": "1", "target": "2"}, ...]
-              }
-            }
+                          }
         `;
 
         const result = await model.generateContent({
@@ -649,8 +481,7 @@ exports.uploadAndAnalyze = async (req, res) => {
             summary: { short: aiResponse.summary },
             keyPoints: aiResponse.keyPoints,
             quizzes: aiResponse.quizzes,
-            mindMap: aiResponse.mindMap,
-            processingStatus: 'completed',
+                        processingStatus: 'completed',
             processingType: 'comprehensive',
         });
 

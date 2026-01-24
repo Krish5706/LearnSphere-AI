@@ -10,7 +10,7 @@ const aiService = {
   analyzeDocument: async (documentId) => {
     try {
       const response = await api.post(`/api/ai/analyze/${documentId}`);
-      return response.data; // Returns { summary, mindMap, quizzes }
+      return response.data; // Returns { summary, quizzes }
     } catch (error) {
       console.error("AI Analysis Error:", error);
       throw error;

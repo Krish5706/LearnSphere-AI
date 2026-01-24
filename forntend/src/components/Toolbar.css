@@ -1,0 +1,62 @@
+.toolbar-container {
+  display: flex;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  padding: 8px;
+  background-color: #f5f5f5;
+  border-bottom: 1px solid #ccc;
+  align-items: center;
+}
+
+.toolbar-group {
+  display: flex;
+  align-items: center;
+  margin-right: 16px;
+}
+
+.toolbar-select {
+  padding: 4px 8px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+  background-color: #fff;
+  margin-right: 8px;
+}
+
+.toolbar-container button {
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  padding: 6px;
+  margin-right: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+}
+
+.toolbar-container button:hover {
+  background-color: #e0e0e0;
+}
+
+.toolbar-container button.is-active {
+  background-color: #d0d0d0;
+  border-color: #a0a0a0;
+}
+
+.toolbar-color-input {
+  width: 24px;
+  height: 24px;
+  border: none;
+  padding: 0;
+  background: none;
+  margin-right: 8px;
+}
+
+/* Hide scrollbar for a cleaner look */
+.toolbar-container::-webkit-scrollbar {
+  display: none;
+}
+
+.toolbar-container {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}

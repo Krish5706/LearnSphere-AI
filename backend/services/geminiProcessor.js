@@ -25,82 +25,25 @@ class GeminiProcessor {
         const prompts = {
             short: `You are an expert academic content summarizer. Summarize the uploaded PDF content based on SHORT summary length.
 
-General Instructions:
-- Use clear, professional, and easy-to-understand language
-- Preserve the original meaning and key ideas from the PDF
-- Do NOT add information that is not supported by the document
-- Avoid unnecessary repetition
-- Ensure logical flow and consistent formatting
-- The summary should be suitable for students and professionals
-
-Formatting Rules for SHORT:
-- Provide a brief overview (5–7 bullet points)
-- Highlight only the most important concepts
-- No sub-sections or external references
-
 Output Requirements:
-- Well-formatted bullet points
-- Clearly separated sections
-- Bullet points used appropriately
+- Use Markdown for formatting.
+- Provide a brief overview with 5-7 bullet points.
+- Highlight only the most important concepts.
 
 Content:\n${content}`,
             medium: `You are an expert academic content summarizer. Summarize the uploaded PDF content based on MEDIUM summary length.
 
-General Instructions:
-- Use clear, professional, and easy-to-understand language
-- Preserve the original meaning and key ideas from the PDF
-- Do NOT add information that is not supported by the document
-- Avoid unnecessary repetition
-- Ensure logical flow and consistent formatting
-- The summary should be suitable for students and professionals
-
-Formatting Rules for MEDIUM:
-- Provide a structured summary with:
-  - Title
-  - Short introduction (2–3 lines)
-  - Key Concepts (bullet points)
-  - Conclusion
-- Moderate depth, no external references
-
 Output Requirements:
-- Well-formatted
-- Clearly separated sections
-- Bullet points and paragraphs used appropriately
+- Use Markdown for formatting.
+- Provide a structured summary with a title, a short introduction (2-3 lines), key concepts (bullet points), and a conclusion.
 
 Content:\n${content}`,
             detailed: `You are an expert academic content summarizer. Summarize the uploaded PDF content based on DETAILED summary length.
 
-General Instructions:
-- Use clear, professional, and easy-to-understand language
-- Preserve the original meaning and key ideas from the PDF
-- Do NOT add information that is not supported by the document
-- Avoid unnecessary repetition
-- Ensure logical flow and consistent formatting
-- The summary should be suitable for students and professionals
-
-Formatting Rules for DETAILED:
-- Provide a comprehensive, well-structured summary with:
-  - Title
-  - Introduction
-  - Section-wise breakdown using clear headings
-  - Important definitions, explanations, and examples (only if present in the PDF)
-  - Key takeaways at the end
-
-External References (ONLY for DETAILED):
-- Add a separate section titled **"Further Reading & References"**
-- Provide 3–6 high-quality external links related to the main topics
-- Use authoritative sources only:
-  - Official documentation
-  - Research papers
-  - Educational websites (e.g., Wikipedia, MDN, GeeksforGeeks, Khan Academy, IEEE, NCBI, etc.)
-- Links should help the reader explore the topic in more depth
-- Do NOT reference unrelated topics
-
 Output Requirements:
-- Well-formatted
-- Clearly separated sections
-- Bullet points and paragraphs used appropriately
-- External links must be clickable and clearly labeled
+- Use Markdown for formatting.
+- Provide a comprehensive, well-structured summary with a title, introduction, section-wise breakdown with clear headings, important definitions and examples, and key takeaways.
+- Include a 'Further Reading & References' section with 3-6 high-quality external links to authoritative sources (e.g., official documentation, research papers, educational websites).
 
 Content:\n${content}`
         };
@@ -152,49 +95,7 @@ Content:\n${content}`
         }
     }
 
-    /**
-     * Generate mind map structure
-     * @param {string} content - The PDF content
-     * @returns {Promise<Object>} - Mind map with nodes and edges
-     */
-    async generateMindMap(content) {
-        const prompt = `Analyze this content and create a mind map structure. Return a valid JSON object with:
-        - "nodes": Array of objects with {id, label, type ('root'|'main'|'sub'), level}
-        - "edges": Array of objects with {id, source, target, label}
-        
-        The root node represents the main topic. Main nodes are primary concepts. Sub nodes are details.
-        
-        Return format:
-        {
-          "nodes": [
-            {"id": "1", "label": "Main Topic", "type": "root", "level": 0},
-            {"id": "2", "label": "Concept 1", "type": "main", "level": 1},
-            {"id": "3", "label": "Detail", "type": "sub", "level": 2}
-          ],
-          "edges": [
-            {"id": "e1-2", "source": "1", "target": "2", "label": "relates to"},
-            {"id": "e2-3", "source": "2", "target": "3", "label": "includes"}
-          ]
-        }
-        
-        Return ONLY valid JSON, no additional text.
-        
-        Content:\n${content}`;
-
-        try {
-            const result = await this.model.generateContent(prompt);
-            let textResponse = result.response.text();
-            const jsonMatch = textResponse.match(/\{[\s\S]*\}/);
-            if (!jsonMatch) {
-                throw new Error('No valid JSON found in response');
-            }
-            const cleanJson = jsonMatch[0].replace(/```json|```/gi, '').trim();
-            return JSON.parse(cleanJson);
-        } catch (error) {
-            throw new Error(`Failed to generate mind map: ${error.message}`);
-        }
-    }
-
+    
     /**
      * Extract key points from content
      * @param {string} content - The PDF content

@@ -31,7 +31,7 @@ const documentSchema = new mongoose.Schema({
     },
     processingType: {
         type: String,
-        enum: ['summary', 'quiz', 'mindmap', 'comprehensive'],
+        enum: ['summary', 'quiz', 'comprehensive'],
         default: 'comprehensive'
     },
     
@@ -42,17 +42,10 @@ const documentSchema = new mongoose.Schema({
         detailed: { type: String }
     },
     
-    // Key insights array (the bullet points we used in Document.jsx)
     keyPoints: [{
         type: String
     }],
-
-    // Mind Map data structure (to be consumed by React Flow)
-    mindMap: {
-        nodes: { type: Array, default: [] },
-        edges: { type: Array, default: [] }
-    },
-
+    
     // Quiz array with scoring
     quizzes: [{
         id: { type: String },

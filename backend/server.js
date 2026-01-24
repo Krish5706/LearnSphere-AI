@@ -12,6 +12,7 @@ const path = require('path');
 const authRoutes = require('./routes/authRoutes');
 const documentRoutes = require('./routes/documentRoutes');
 const userRoutes = require('./routes/userRoutes');
+const { noteRouter } = require('./routes/noteRoutes');
 
 // Import Middleware
 const globalErrorHandler = require('./middleware/errorMiddleware');
@@ -28,7 +29,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Debug: Log all incoming requests BEFORE routes
 app.use((req, res, next) => {
-    if (req.path.includes('mindmap') || req.path.includes('documents')) {
+    if (req.path.includes('documents')) {
         console.log('🔍 INCOMING REQUEST - Method:', req.method, 'Path:', req.path, 'Original URL:', req.originalUrl);
     }
     next();
@@ -43,6 +44,7 @@ mongoose.connect(process.env.MONGODB_URI)
 app.use('/api/auth', authRoutes);         // Login & Registration
 app.use('/api/documents', documentRoutes); // AI PDF Analysis & History
 app.use('/api/users', userRoutes);         // Profile & Credits
+app.use('/api/notes', noteRouter);         // Update/Delete individual notes
 
 // 4. CATCH-ALL 404 HANDLER
 // If a request hits this, it means no route above matched

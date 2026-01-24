@@ -39,32 +39,22 @@ exports.uploadAndAnalyze = async (req, res) => {
         console.log(`Using Gemini model: ${modelName}`);
         const model = genAI.getGenerativeModel({ model: modelName });
         const pdfData = fs.readFileSync(req.file.path).toString("base64");
-
         const prompt = `
             Analyze this PDF and provide:
             1. A short summary (max 3 sentences).
             2. 5 key bullet points.
             3. A quiz with 3 MCQs.
-            4. A Mind Map structure with 'nodes' and 'edges'. 
-               - The 'nodes' should have id, label, and type ('root', 'main', or 'sub').
-               - The 'edges' should connect these IDs.
-            
             Return ONLY a valid JSON object like this:
             {
               "summary": "...",
               "keyPoints": ["..."],
-              "quizzes": [...],
-              "mindMap": {
-                "nodes": [{"id": "1", "label": "Topic", "type": "root"}, ...],
-                "edges": [{"id": "e1-2", "source": "1", "target": "2"}, ...]
-              }
+              "quizzes": [...]
             }
         `;
 
         // Generate content with PDF
         const result = await model.generateContent({
             contents: [{
-                role: "user",
                 parts: [
                     { text: prompt },
                     { inlineData: { data: pdfData, mimeType: "application/pdf" } }
@@ -76,16 +66,14 @@ exports.uploadAndAnalyze = async (req, res) => {
         const cleanJson = textResponse.replace(/```json|```/gi, "").trim();
         const aiResponse = JSON.parse(cleanJson);
 
-        // Save with mindMap data
-        const newDoc = await Document.create({
+                const newDoc = await Document.create({
             user: user._id,
             fileName: req.file.originalname,
             fileUrl: req.file.path,
             summary: { short: aiResponse.summary },
             keyPoints: aiResponse.keyPoints,
             quizzes: aiResponse.quizzes,
-            mindMap: aiResponse.mindMap // Saved here!
-        });
+                    });
 
         if (!user.isSubscribed) {
             // Use findByIdAndUpdate to avoid triggering password hashing pre-save hook

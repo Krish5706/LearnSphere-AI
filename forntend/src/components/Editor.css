@@ -1,0 +1,80 @@
+.editor-container {
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.editor-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  padding: 8px;
+  background-color: #f5f5f5;
+  border-bottom: 1px solid #ccc;
+}
+
+.editor-toolbar button {
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  padding: 4px 8px;
+  margin-right: 4px;
+  margin-bottom: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.editor-toolbar button:hover {
+  background-color: #e0e0e0;
+}
+
+.editor-toolbar button.is-active {
+  background-color: #a0a0a0;
+  border-color: #707070;
+  color: #fff;
+  font-weight: bold;
+}
+
+.ProseMirror {
+  padding: 12px;
+  min-height: 150px;
+  outline: none;
+}
+
+.ProseMirror h1, .ProseMirror h2, .ProseMirror h3 {
+  margin-top: 1em;
+  margin-bottom: 0.5em;
+}
+
+.ProseMirror p {
+  margin-bottom: 0.5em;
+}
+
+.ProseMirror ul, .ProseMirror ol {
+  margin-left: 20px;
+  margin-bottom: 0.5em;
+}
+
+.ProseMirror blockquote {
+  border-left: 3px solid #ccc;
+  margin-left: 1em;
+  padding-left: 1em;
+  font-style: italic;
+}
+
+.ProseMirror pre {
+  background: #f5f5f5;
+  border-radius: 4px;
+  padding: 8px;
+  font-family: monospace;
+  white-space: pre-wrap;
+}
+
+.ProseMirror code {
+  background: rgba(0, 0, 0, 0.1);
+  padding: 0.1em 0.3em;
+  border-radius: 2px;
+}
+
+.editor-toolbar button.font-size-btn {
+  width: 40px;
+}

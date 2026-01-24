@@ -5,10 +5,10 @@ import api, { getDocumentById } from '../services/api';
 import ShortSummary from '../components/summary/ShortSummary';
 import MediumSummary from '../components/summary/MediumSummary';
 import DetailedSummary from '../components/summary/DetailedSummary';
-import MindMap from '../components/mindmap/MindMap';
 import QuizListNew from '../components/quiz/QuizListNew';
 import QuizResultAnalysis from '../components/quiz/QuizResultAnalysis';
-import { FileText, BrainCircuit, GraduationCap, Loader2, ChevronLeft, Lock, Sparkles, BarChart3 } from 'lucide-react';
+import Notes from '../components/Notes';
+import { FileText, BrainCircuit, GraduationCap, Loader2, ChevronLeft, Lock, Sparkles, BarChart3, BookText } from 'lucide-react';
 
 const Document = () => {
     const { id } = useParams();
@@ -72,11 +72,11 @@ const Document = () => {
                     <button onClick={() => setActiveTab('summary')} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'summary' ? 'bg-white text-blue-600' : 'text-slate-600'}`}>
                         <FileText size={16} /> Summary
                     </button>
-                    <button onClick={() => setActiveTab('mindmap')} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'mindmap' ? 'bg-white text-blue-600' : 'text-slate-600'}`}>
-                        <BrainCircuit size={16} /> Mind Map {isRestricted && <Lock size={12} />}
-                    </button>
                     <button onClick={() => setActiveTab('quiz')} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'quiz' ? 'bg-white text-blue-600' : 'text-slate-600'}`}>
                         <GraduationCap size={16} /> Quiz {isRestricted && <Lock size={12} />}
+                    </button>
+                    <button onClick={() => setActiveTab('notes')} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'notes' ? 'bg-white text-blue-600' : 'text-slate-600'}`}>
+                        <BookText size={16} /> Notes
                     </button>
                 </div>
             </div>
@@ -141,11 +141,8 @@ const Document = () => {
                     </div>
                 )}
 
-                {activeTab === 'mindmap' && (
-                    <div className="relative h-[600px] w-full">
-                        {/* Mind Map is always free, no paywall */}
-                        <MindMap data={doc.mindMap} />
-                    </div>
+                {activeTab === 'notes' && (
+                    <Notes documentId={id} token={localStorage.getItem('token')} />
                 )}
 
                 {activeTab === 'quiz' && (

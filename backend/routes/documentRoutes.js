@@ -21,22 +21,15 @@ router.get('/', protect, docController.getUserDocuments);
 // ✅ Validation: Max 30 pages, 10MB size
 router.post('/upload', protect, upload.single('pdf'), docController.uploadPDF);
 
-// Process PDF with selected options (Step 2: User chooses summary/quiz/mindmap)
+// Process PDF with selected options (Step 2: User chooses summary/quiz)
 router.post('/process', protect, docController.processPDF);
 
 // Submit quiz answers (Step 3: User submits quiz) - MUST BE BEFORE /:id
 // Routes: /api/documents/submit-quiz (matches frontend API call)
-router.post('/submit-quiz', protect, docController.submitQuizAnswers);
 router.post('/quiz/submit', protect, docController.submitQuizAnswers); // Alternative route
 
 // Generate report PDF (Step 4: Export results as PDF)
 router.post('/report/generate', protect, docController.generateReportPDF);
-
-// Generate Mind Map (LLM-Free) - MUST BE BEFORE /:id routes
-// Route: GET /api/documents/:id/mindmap (fetch existing mindmap)
-router.get('/:id/mindmap', protect, docController.getMindMap);
-// Route: POST /api/documents/:id/mindmap (generate new mindmap)
-router.post('/:id/mindmap', protect, docController.generateMindMap);
 
 // BACKWARD COMPATIBILITY - Old upload & analyze endpoint
 router.post('/upload-and-analyze', protect, upload.single('pdf'), docController.uploadAndAnalyze);
