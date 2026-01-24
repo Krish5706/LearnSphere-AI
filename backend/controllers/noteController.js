@@ -43,6 +43,9 @@ const createNote = asyncHandler(async (req, res) => {
   const { documentId } = req.params;
   const { title, content } = req.body;
 
+  console.log('🔍 CreateNote - documentId:', documentId, 'title:', title, 'content:', content);
+  console.log('🔍 CreateNote - req.params:', req.params);
+
   if (!title || !content) {
     res.status(400);
     throw new Error('Please provide title and content');

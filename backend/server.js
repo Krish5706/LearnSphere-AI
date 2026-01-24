@@ -12,7 +12,7 @@ const path = require('path');
 const authRoutes = require('./routes/authRoutes');
 const documentRoutes = require('./routes/documentRoutes');
 const userRoutes = require('./routes/userRoutes');
-const { noteRouter } = require('./routes/noteRoutes');
+const { router: documentNoteRouter, noteRouter: individualNoteRouter } = require('./routes/noteRoutes');
 
 // Import Middleware
 const globalErrorHandler = require('./middleware/errorMiddleware');
@@ -44,7 +44,7 @@ mongoose.connect(process.env.MONGODB_URI)
 app.use('/api/auth', authRoutes);         // Login & Registration
 app.use('/api/documents', documentRoutes); // AI PDF Analysis & History
 app.use('/api/users', userRoutes);         // Profile & Credits
-app.use('/api/notes', noteRouter);         // Update/Delete individual notes
+app.use('/api/notes', individualNoteRouter); // Update/Delete individual notes
 
 // 4. CATCH-ALL 404 HANDLER
 // If a request hits this, it means no route above matched
@@ -58,7 +58,7 @@ app.use((req, res, next) => {
 // This catches all errors (AI failures, DB issues, etc.) and sends clean JSON to frontend
 app.use(globalErrorHandler);
 
-// 6. START SERVER
+// 6. START SERVERī
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`🚀 LearnSphere-AI Backend spinning on http://localhost:${PORT}`);

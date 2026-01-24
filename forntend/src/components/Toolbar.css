@@ -1,62 +1,169 @@
 .toolbar-container {
   display: flex;
-  flex-wrap: nowrap;
-  overflow-x: auto;
-  padding: 8px;
-  background-color: #f5f5f5;
-  border-bottom: 1px solid #ccc;
-  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px 16px;
+  background: linear-gradient(to bottom, #f9fafb, #f3f4f6);
+  border-bottom: 2px solid #e5e7eb;
+  border-radius: 8px 8px 0 0;
+  align-items: flex-start;
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.5);
+}
+
+.toolbar-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 4px 8px;
+  padding-right: 12px;
+  border-right: 1px solid #d1d5db;
+  padding-bottom: 4px;
+}
+
+.toolbar-section:last-child {
+  border-right: none;
+  padding-right: 0;
+}
+
+.toolbar-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 2px;
 }
 
 .toolbar-group {
   display: flex;
   align-items: center;
-  margin-right: 16px;
+  gap: 4px;
+  flex-wrap: wrap;
 }
 
-.toolbar-select {
-  padding: 4px 8px;
-  border-radius: 4px;
-  border: 1px solid #ccc;
-  background-color: #fff;
-  margin-right: 8px;
-}
-
-.toolbar-container button {
-  background: none;
-  border: 1px solid transparent;
-  border-radius: 4px;
-  padding: 6px;
-  margin-right: 4px;
+.toolbar-btn {
+  background: white;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  padding: 6px 8px;
   cursor: pointer;
   display: flex;
   align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  color: #374151;
+  font-weight: 500;
+  min-width: 32px;
+  height: 32px;
 }
 
-.toolbar-container button:hover {
-  background-color: #e0e0e0;
+.toolbar-btn:hover:not(:disabled) {
+  background-color: #f0f9ff;
+  border-color: #3b82f6;
+  color: #3b82f6;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.1);
+  transform: translateY(-1px);
 }
 
-.toolbar-container button.is-active {
-  background-color: #d0d0d0;
-  border-color: #a0a0a0;
+.toolbar-btn.is-active {
+  background-color: #dbeafe;
+  border-color: #3b82f6;
+  color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1), inset 0 1px 2px rgba(59, 130, 246, 0.2);
+}
+
+.toolbar-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  background-color: #f9fafb;
+}
+
+.toolbar-btn:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 1px 2px rgba(59, 130, 246, 0.15);
+}
+
+.toolbar-select {
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid #d1d5db;
+  background-color: white;
+  font-size: 12px;
+  font-weight: 500;
+  color: #374151;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 80px;
+  height: 32px;
+}
+
+.toolbar-select:hover {
+  border-color: #3b82f6;
+  background-color: #f0f9ff;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.1);
+}
+
+.toolbar-select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
 .toolbar-color-input {
-  width: 24px;
-  height: 24px;
-  border: none;
-  padding: 0;
-  background: none;
-  margin-right: 8px;
+  width: 32px;
+  height: 32px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  padding: 2px;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
-/* Hide scrollbar for a cleaner look */
-.toolbar-container::-webkit-scrollbar {
-  display: none;
+.toolbar-color-input:hover:not(:disabled) {
+  border-color: #3b82f6;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.1);
 }
 
-.toolbar-container {
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;  /* Firefox */
+.toolbar-color-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.toolbar-color-input:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* Mobile responsiveness - horizontally scrollable on small screens */
+@media (max-width: 768px) {
+  .toolbar-container {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    gap: 4px;
+    padding: 10px 12px;
+  }
+  
+  .toolbar-container::-webkit-scrollbar {
+    height: 4px;
+  }
+  
+  .toolbar-container::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 2px;
+  }
+  
+  .toolbar-container::-webkit-scrollbar-thumb {
+    background: #9ca3af;
+    border-radius: 2px;
+  }
+  
+  .toolbar-container::-webkit-scrollbar-thumb:hover {
+    background: #6b7280;
+  }
+  
+  .toolbar-section {
+    padding: 4px 6px;
+    padding-right: 10px;
+  }
 }

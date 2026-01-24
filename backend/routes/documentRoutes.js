@@ -3,6 +3,7 @@ const router = express.Router();
 const docController = require('../controllers/documentControllerNew');
 const { protect } = require('../middleware/authMiddleware');
 const upload = require('../middleware/uploadMiddleware');
+const { router: noteRouter } = require('./noteRoutes');
 
 /**
  * PATH: /api/documents
@@ -33,6 +34,9 @@ router.post('/report/generate', protect, docController.generateReportPDF);
 
 // BACKWARD COMPATIBILITY - Old upload & analyze endpoint
 router.post('/upload-and-analyze', protect, upload.single('pdf'), docController.uploadAndAnalyze);
+
+// Mount note routes under specific document - MUST BE BEFORE /:id
+router.use('/:documentId/notes', noteRouter);
 
 // Get single document - MUST BE LAST (catches /:id)
 router.get('/:id', protect, docController.getDocument);
