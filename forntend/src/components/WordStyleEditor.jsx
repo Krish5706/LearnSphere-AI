@@ -1,4 +1,4 @@
-import React from 'react';
+  import React, { useEffect } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
@@ -7,12 +7,12 @@ import Highlight from '@tiptap/extension-highlight';
 import FontFamily from '@tiptap/extension-font-family';
 import { TextStyle } from '@tiptap/extension-text-style';
 import Color from '@tiptap/extension-color';
-import { FontSize } from '../extensions/FontSize';
+import { FontSize } from '../extensions/font-size';
 import { LineHeight } from '../extensions/LineHeight';
 import Toolbar from './Toolbar';
 import './Editor.css'; // Re-use the base editor styles
 
-const WordStyleEditor = ({ content, onChange }) => {
+const WordStyleEditor = ({ content, onChange, onEditorReady, hideToolbar }) => {
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -35,9 +35,12 @@ const WordStyleEditor = ({ content, onChange }) => {
       TextStyle,
       Color,
       FontSize,
-      LineHeight,
+      LineHeight.configure({ types: ['heading', 'paragraph'] }),
     ],
     content: content,
+    onCreate: ({ editor }) => {
+      if (onEditorReady) onEditorReady(editor);
+    },
     onUpdate: ({ editor }) => {
       onChange(editor.getHTML());
     },
@@ -48,9 +51,16 @@ const WordStyleEditor = ({ content, onChange }) => {
     },
   });
 
+  // Update editor content when the content prop changes (e.g., switching notes)
+  useEffect(() => {
+    if (editor && content !== editor.getHTML()) {
+      editor.commands.setContent(content);
+    }
+  }, [content, editor]);
+
   return (
-    <div className="editor-container">
-      <Toolbar editor={editor} />
+    <div className={`editor-container ${hideToolbar ? '!border-0 !shadow-none !rounded-none' : ''}`}>
+      {!hideToolbar && <Toolbar editor={editor} />}
       <EditorContent editor={editor} />
     </div>
   );

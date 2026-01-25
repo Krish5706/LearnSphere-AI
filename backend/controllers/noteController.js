@@ -2,6 +2,11 @@ const asyncHandler = require('express-async-handler');
 const Note = require('../models/Note');
 const Document = require('../models/Document');
 
+// Helper to escape regex special characters for safe search
+const escapeRegex = (text) => {
+  return text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
+};
+
 // @desc    Get notes for a document
 // @route   GET /api/documents/:documentId/notes
 // @access  Private
@@ -25,9 +30,10 @@ const getNotes = asyncHandler(async (req, res) => {
   let query = { document: documentId, user: req.user.id };
 
   if (search) {
+    const safeSearch = escapeRegex(search);
     query.$or = [
-      { title: { $regex: search, $options: 'i' } },
-      { content: { $regex: search, $options: 'i' } },
+      { title: { $regex: safeSearch, $options: 'i' } },
+      { content: { $regex: safeSearch, $options: 'i' } },
     ];
   }
 
@@ -42,9 +48,6 @@ const getNotes = asyncHandler(async (req, res) => {
 const createNote = asyncHandler(async (req, res) => {
   const { documentId } = req.params;
   const { title, content } = req.body;
-
-  console.log('🔍 CreateNote - documentId:', documentId, 'title:', title, 'content:', content);
-  console.log('🔍 CreateNote - req.params:', req.params);
 
   if (!title || !content) {
     res.status(400);

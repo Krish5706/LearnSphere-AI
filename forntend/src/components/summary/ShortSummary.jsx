@@ -39,7 +39,7 @@ const ShortSummary = ({ text }) => {
           </div>
         ) : (
           <div className="text-center py-12">
-            <div className="w-16 h-16 bg-amber-50 text-amber-400 rounded-full flex items-center justify-center mx-auto mb-4">
+            <div className="w-16 h-16 bg-blue-50 text-blue-400 rounded-full flex items-center justify-center mx-auto mb-4">
               <FileText size={32} />
             </div>
             <p className="text-slate-500 font-medium">Summary not available</p>
