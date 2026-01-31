@@ -41,8 +41,8 @@ const DetailedSummary = ({ content, fileName, keyInsights, onDownloadReport }) =
 
     try {
       if (format === 'pdf') {
-        // Use existing PDF export
-        await onDownloadReport('summary');
+        // Call backend PDF exporter - it handles download automatically
+        await onDownloadReport('detailed');
       } else {
         // Generate and download text/markdown
         const mimeType = format === 'txt' ? 'text/plain' : 'text/markdown';

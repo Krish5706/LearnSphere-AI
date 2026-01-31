@@ -34,33 +34,8 @@ const ShortSummary = ({ text, fileName, onDownloadReport }) => {
 
     try {
       if (format === 'pdf') {
-        // Call backend PDF exporter
-        const response = await onDownloadReport('short');
-
-        // Case 1: backend returns a URL string
-        if (typeof response === 'string') {
-          const link = document.createElement('a');
-          link.href = response;
-          link.download = `${fileName}_Short_Summary.pdf`;
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-        }
-
-        // Case 2: backend returns a fetch Response
-        if (response instanceof Response) {
-          const blob = await response.blob();
-          const url = URL.createObjectURL(blob);
-
-          const link = document.createElement('a');
-          link.href = url;
-          link.download = `${fileName}_Short_Summary.pdf`;
-          document.body.appendChild(link);
-          link.click();
-
-          document.body.removeChild(link);
-          URL.revokeObjectURL(url);
-        }
+        // Call backend PDF exporter - it handles download automatically
+        await onDownloadReport('short');
       } else {
         // Generate and download TXT or Markdown
         const mimeType = format === 'txt' ? 'text/plain;charset=utf-8' : 'text/markdown;charset=utf-8';

@@ -24,8 +24,31 @@ const Document = () => {
             const response = await api.post('/documents/report/generate', {
                 documentId: id,
                 reportType: reportType || 'comprehensive'
+            }, {
+                responseType: 'blob'
             });
-            // File downloads automatically
+
+            // Create blob and download
+            const blob = new Blob([response.data], { type: 'application/pdf' });
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+
+            // Get filename from response headers
+            const contentDisposition = response.headers['content-disposition'];
+            let filename = 'report.pdf';
+            if (contentDisposition) {
+                const matches = contentDisposition.match(/filename="([^"]+)"/);
+                if (matches && matches[1]) {
+                    filename = matches[1];
+                }
+            }
+
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
         } catch (err) {
             console.error('Download failed:', err);
         }

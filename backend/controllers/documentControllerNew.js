@@ -323,32 +323,26 @@ exports.generateReportPDF = async (req, res) => {
         };
 
         // Generate PDF
-        const pdfPath = await pdfExporter.generateReport(exportData, reportType || 'comprehensive');
+        const pdfBuffer = await pdfExporter.generateReportBuffer(exportData, reportType || 'comprehensive');
 
         // Check if PDF was generated successfully
-        if (!fs.existsSync(pdfPath) || fs.statSync(pdfPath).size === 0) {
-            throw new Error('Failed to generate PDF report - file is empty');
+        if (!pdfBuffer || pdfBuffer.length === 0) {
+            throw new Error('Failed to generate PDF report - buffer is empty');
         }
 
-        // Store reference in document
-        const reportFileName = path.basename(pdfPath);
-        doc.generatedReports.push({
-            type: reportType || 'comprehensive',
-            filePath: reportFileName,
-            generatedAt: new Date(),
-        });
-        await doc.save();
+        // Store reference in document (optional - could be removed if not needed)
+        // Since we're not saving to disk, we can skip this
+        // doc.generatedReports.push({
+        //     type: reportType || 'comprehensive',
+        //     generatedAt: new Date(),
+        // });
+        // await doc.save();
 
-        // Send file
-        res.download(pdfPath, `${doc.fileName}-report.pdf`, (err) => {
-            if (err) {
-                console.error("Download error:", err);
-            }
-            // Optionally delete file after sending
-            // fs.unlink(pdfPath, (err) => {
-            //     if (err) console.error('Could not delete file:', err);
-            // });
-        });
+        // Send PDF buffer as response
+        const fileName = `${doc.fileName.replace(/[^a-zA-Z0-9]/g, '_')}_${reportType || 'comprehensive'}.pdf`;
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+        res.send(pdfBuffer);
 
     } catch (err) {
         console.error("PDF Generation Error:", err);
