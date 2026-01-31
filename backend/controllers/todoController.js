@@ -1,43 +1,85 @@
 const Todo = require('../models/Todo');
-const asyncHandler = require('express-async-handler');
+
+// Simple async error wrapper
+const asyncHandler = (fn) => (req, res, next) => {
+    Promise.resolve(fn(req, res, next)).catch(next);
+};
 
 // @desc    Create a new todo task
 // @route   POST /api/todos
 // @access  Private
 const createTodo = asyncHandler(async (req, res) => {
     const { title, description, priority, dueDate, linkedEntity } = req.body;
+    const Document = require('../models/Document');
+    const Note = require('../models/Note');
+
+    console.log('📝 Creating todo with data:', { title, description, priority, dueDate, linkedEntity, userId: req.user._id });
 
     // Validate required fields
     if (!title || !dueDate) {
-        res.status(400);
-        throw new Error('Title and due date are required');
+        return res.status(400).json({ success: false, message: 'Title and due date are required' });
     }
 
     // Validate due date is not in the past
-    if (new Date(dueDate) < new Date()) {
-        res.status(400);
-        throw new Error('Due date cannot be in the past');
+    const dueDateObj = new Date(dueDate);
+    const now = new Date();
+    now.setHours(0, 0, 0, 0); // Reset to start of day for comparison
+    dueDateObj.setHours(0, 0, 0, 0); // Reset to start of day for comparison
+    
+    if (dueDateObj < now) {
+        return res.status(400).json({ success: false, message: 'Due date cannot be in the past' });
     }
 
-    // Create the todo
-    const todo = await Todo.create({
+    // Build todo data object
+    const todoData = {
         user: req.user._id,
         title,
         description,
         priority: priority || 'medium',
-        dueDate,
-        linkedEntity
-    });
+        dueDate: dueDateObj
+    };
 
-    // Populate linked entity if provided
-    if (linkedEntity && linkedEntity.type && linkedEntity.entityId) {
-        await todo.populate('linkedEntity.entityId');
+    // Only add linkedEntity if it has a type (is not just an empty object)
+    if (linkedEntity && linkedEntity.type) {
+        todoData.linkedEntity = {
+            type: linkedEntity.type,
+            entityId: linkedEntity.entityId || null,
+            entityTitle: linkedEntity.entityTitle || null
+        };
     }
 
-    res.status(201).json({
-        success: true,
-        data: todo
-    });
+    try {
+        const todo = await Todo.create(todoData);
+        console.log('✅ Todo created successfully:', todo._id);
+        
+        // Enrich linkedEntity with actual name
+        const todoObj = todo.toObject();
+        if (todoObj.linkedEntity && todoObj.linkedEntity.entityId) {
+            try {
+                if (todoObj.linkedEntity.type === 'document') {
+                    const doc = await Document.findById(todoObj.linkedEntity.entityId).select('fileName');
+                    if (doc) {
+                        todoObj.linkedEntity.entityName = doc.fileName;
+                    }
+                } else if (todoObj.linkedEntity.type === 'note') {
+                    const note = await Note.findById(todoObj.linkedEntity.entityId).select('title');
+                    if (note) {
+                        todoObj.linkedEntity.entityName = note.title;
+                    }
+                }
+            } catch (error) {
+                console.error('Error fetching linked entity:', error.message);
+            }
+        }
+        
+        res.status(201).json({
+            success: true,
+            data: todoObj
+        });
+    } catch (error) {
+        console.error('❌ Todo creation error:', error.message, error);
+        return res.status(400).json({ success: false, message: error.message });
+    }
 });
 
 // @desc    Get all todos for the authenticated user
@@ -45,6 +87,8 @@ const createTodo = asyncHandler(async (req, res) => {
 // @access  Private
 const getTodos = asyncHandler(async (req, res) => {
     const { status, priority, sortBy = 'dueDate', sortOrder = 'asc' } = req.query;
+    const Document = require('../models/Document');
+    const Note = require('../models/Note');
 
     // Build filter object
     const filter = { user: req.user._id };
@@ -61,14 +105,39 @@ const getTodos = asyncHandler(async (req, res) => {
     const sortOptions = {};
     sortOptions[sortBy] = sortOrder === 'desc' ? -1 : 1;
 
-    const todos = await Todo.find(filter)
-        .populate('linkedEntity.entityId')
-        .sort(sortOptions);
+    const todos = await Todo.find(filter).sort(sortOptions);
+
+    // Populate linkedEntity with actual document/note/quiz name
+    const enrichedTodos = await Promise.all(
+        todos.map(async (todo) => {
+            const todoObj = todo.toObject();
+            
+            if (todoObj.linkedEntity && todoObj.linkedEntity.entityId) {
+                try {
+                    if (todoObj.linkedEntity.type === 'document') {
+                        const doc = await Document.findById(todoObj.linkedEntity.entityId).select('fileName');
+                        if (doc) {
+                            todoObj.linkedEntity.entityName = doc.fileName;
+                        }
+                    } else if (todoObj.linkedEntity.type === 'note') {
+                        const note = await Note.findById(todoObj.linkedEntity.entityId).select('title');
+                        if (note) {
+                            todoObj.linkedEntity.entityName = note.title;
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error fetching linked entity:', error.message);
+                }
+            }
+            
+            return todoObj;
+        })
+    );
 
     res.status(200).json({
         success: true,
-        count: todos.length,
-        data: todos
+        count: enrichedTodos.length,
+        data: enrichedTodos
     });
 });
 
@@ -77,25 +146,31 @@ const getTodos = asyncHandler(async (req, res) => {
 // @access  Private
 const updateTodo = asyncHandler(async (req, res) => {
     const { title, description, priority, dueDate, linkedEntity } = req.body;
+    const Document = require('../models/Document');
+    const Note = require('../models/Note');
 
     // Find the todo and check ownership
     const todo = await Todo.findById(req.params.id);
 
     if (!todo) {
-        res.status(404);
-        throw new Error('Todo not found');
+        return res.status(404).json({ success: false, message: 'Todo not found' });
     }
 
     // Check if user owns this todo
     if (todo.user.toString() !== req.user._id.toString()) {
-        res.status(403);
-        throw new Error('Not authorized to update this todo');
+        return res.status(403).json({ success: false, message: 'Not authorized to update this todo' });
     }
 
     // Validate due date if provided
-    if (dueDate && new Date(dueDate) < new Date()) {
-        res.status(400);
-        throw new Error('Due date cannot be in the past');
+    if (dueDate) {
+        const dueDateObj = new Date(dueDate);
+        const now = new Date();
+        now.setHours(0, 0, 0, 0);
+        dueDateObj.setHours(0, 0, 0, 0);
+        
+        if (dueDateObj < now) {
+            return res.status(400).json({ success: false, message: 'Due date cannot be in the past' });
+        }
     }
 
     // Update the todo
@@ -110,11 +185,31 @@ const updateTodo = asyncHandler(async (req, res) => {
             updatedAt: Date.now()
         },
         { new: true, runValidators: true }
-    ).populate('linkedEntity.entityId');
+    );
+
+    // Enrich linkedEntity with actual name
+    const todoObj = updatedTodo.toObject();
+    if (todoObj.linkedEntity && todoObj.linkedEntity.entityId) {
+        try {
+            if (todoObj.linkedEntity.type === 'document') {
+                const doc = await Document.findById(todoObj.linkedEntity.entityId).select('fileName');
+                if (doc) {
+                    todoObj.linkedEntity.entityName = doc.fileName;
+                }
+            } else if (todoObj.linkedEntity.type === 'note') {
+                const note = await Note.findById(todoObj.linkedEntity.entityId).select('title');
+                if (note) {
+                    todoObj.linkedEntity.entityName = note.title;
+                }
+            }
+        } catch (error) {
+            console.error('Error fetching linked entity:', error.message);
+        }
+    }
 
     res.status(200).json({
         success: true,
-        data: updatedTodo
+        data: todoObj
     });
 });
 
@@ -122,18 +217,19 @@ const updateTodo = asyncHandler(async (req, res) => {
 // @route   PATCH /api/todos/:id/done
 // @access  Private
 const markTodoDone = asyncHandler(async (req, res) => {
+    const Document = require('../models/Document');
+    const Note = require('../models/Note');
+
     // Find the todo and check ownership
     const todo = await Todo.findById(req.params.id);
 
     if (!todo) {
-        res.status(404);
-        throw new Error('Todo not found');
+        return res.status(404).json({ success: false, message: 'Todo not found' });
     }
 
     // Check if user owns this todo
     if (todo.user.toString() !== req.user._id.toString()) {
-        res.status(403);
-        throw new Error('Not authorized to update this todo');
+        return res.status(403).json({ success: false, message: 'Not authorized to update this todo' });
     }
 
     // Update status and completion time
@@ -147,11 +243,31 @@ const markTodoDone = asyncHandler(async (req, res) => {
         req.params.id,
         updateData,
         { new: true }
-    ).populate('linkedEntity.entityId');
+    );
+
+    // Enrich linkedEntity with actual name
+    const todoObj = updatedTodo.toObject();
+    if (todoObj.linkedEntity && todoObj.linkedEntity.entityId) {
+        try {
+            if (todoObj.linkedEntity.type === 'document') {
+                const doc = await Document.findById(todoObj.linkedEntity.entityId).select('fileName');
+                if (doc) {
+                    todoObj.linkedEntity.entityName = doc.fileName;
+                }
+            } else if (todoObj.linkedEntity.type === 'note') {
+                const note = await Note.findById(todoObj.linkedEntity.entityId).select('title');
+                if (note) {
+                    todoObj.linkedEntity.entityName = note.title;
+                }
+            }
+        } catch (error) {
+            console.error('Error fetching linked entity:', error.message);
+        }
+    }
 
     res.status(200).json({
         success: true,
-        data: updatedTodo
+        data: todoObj
     });
 });
 
@@ -163,14 +279,12 @@ const deleteTodo = asyncHandler(async (req, res) => {
     const todo = await Todo.findById(req.params.id);
 
     if (!todo) {
-        res.status(404);
-        throw new Error('Todo not found');
+        return res.status(404).json({ success: false, message: 'Todo not found' });
     }
 
     // Check if user owns this todo
     if (todo.user.toString() !== req.user._id.toString()) {
-        res.status(403);
-        throw new Error('Not authorized to delete this todo');
+        return res.status(403).json({ success: false, message: 'Not authorized to delete this todo' });
     }
 
     // Delete the todo

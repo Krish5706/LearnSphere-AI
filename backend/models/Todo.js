@@ -45,14 +45,16 @@ const todoSchema = new mongoose.Schema({
     linkedEntity: {
         type: {
             type: String,
-            enum: ['document', 'quiz', 'note']
+            enum: ['document', 'quiz', 'note'],
+            default: null
         },
         entityId: {
-            type: mongoose.Schema.Types.ObjectId,
-            refPath: 'linkedEntity.type'
+            type: String,  // Store as string to be flexible with validation
+            default: null
         },
         entityTitle: {
-            type: String // Store the title for quick reference
+            type: String,
+            default: null
         }
     },
 
@@ -81,7 +83,9 @@ todoSchema.index({ user: 1, priority: 1 });
 // Update the updatedAt field before saving
 todoSchema.pre('save', function(next) {
     this.updatedAt = Date.now();
-    next();
+    if (next && typeof next === 'function') {
+        next();
+    }
 });
 
 module.exports = mongoose.model('Todo', todoSchema);

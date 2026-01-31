@@ -138,9 +138,9 @@ const TodoItem = ({ todo, onEdit, onDelete, onStatusChange }) => {
 
                     {/* Linked Entity */}
                     {todo.linkedEntity && todo.linkedEntity.entityId && (
-                        <div className="flex items-center gap-1 text-blue-600 bg-blue-50 px-2 py-1 rounded">
+                        <div className="flex items-center gap-1 text-blue-600 bg-blue-50 px-2 py-1 rounded max-w-xs truncate" title={todo.linkedEntity.entityName || todo.linkedEntity.type}>
                             <BookOpen size={14} />
-                            <span className="capitalize">{todo.linkedEntity.type}</span>
+                            <span className="truncate">{todo.linkedEntity.entityName || todo.linkedEntity.type}</span>
                         </div>
                     )}
 
