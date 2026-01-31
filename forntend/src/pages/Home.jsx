@@ -54,7 +54,7 @@ const Home = () => {
           </div>
           <h3 className="text-xl font-bold mb-3">Instant Summaries</h3>
           <p className="text-slate-500 leading-relaxed">
-            Get the gist of 50-page documents in seconds. Our AI extracts key points and saves you hours of reading.
+            Get the gist of 30-page documents in seconds. Our AI extracts key points and saves you hours of reading.
           </p>
         </div>
 

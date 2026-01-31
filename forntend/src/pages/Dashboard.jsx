@@ -205,7 +205,7 @@ const Dashboard = () => {
                                             {new Date(doc.createdAt).toLocaleDateString()}
                                         </span>
                                         <span className="bg-slate-100 px-2 py-0.5 rounded uppercase">
-                                            {doc.pageCount || 0} Pages
+                                            {doc.pdfMetadata?.pages || 0} Pages
                                         </span>
                                     </div>
                                 </div>

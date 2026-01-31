@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Settings, User, LogOut, ChevronDown } from 'lucide-react';
+import { Settings, User, LogOut, LogIn, ChevronDown } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 const ProfileDropdown = () => {
@@ -53,6 +53,11 @@ const ProfileDropdown = () => {
     setIsOpen(false);
   };
 
+  const handleLogin = () => {
+    navigate('/login');
+    setIsOpen(false);
+  };
+
   return (
     <div className="relative" ref={dropdownRef} onKeyDown={handleKeyDown}>
       <button
@@ -77,30 +82,43 @@ const ProfileDropdown = () => {
           role="menu"
           aria-orientation="vertical"
         >
-          <div className="px-4 py-2 border-b border-slate-100">
-            <p className="text-sm font-medium text-slate-900">{user?.name}</p>
-            <p className="text-xs text-slate-500">{user?.email}</p>
-          </div>
+          {user ? (
+            <>
+              <div className="px-4 py-2 border-b border-slate-100">
+                <p className="text-sm font-medium text-slate-900">{user?.name}</p>
+                <p className="text-xs text-slate-500">{user?.email}</p>
+              </div>
 
-          <button
-            onClick={handleSettings}
-            className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2 transition-colors"
-            role="menuitem"
-          >
-            <Settings size={16} />
-            Settings
-          </button>
+              <button
+                onClick={handleSettings}
+                className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2 transition-colors"
+                role="menuitem"
+              >
+                <Settings size={16} />
+                Settings
+              </button>
 
-          <div className="border-t border-slate-100 my-1"></div>
+              <div className="border-t border-slate-100 my-1"></div>
 
-          <button
-            onClick={handleLogout}
-            className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors"
-            role="menuitem"
-          >
-            <LogOut size={16} />
-            Logout
-          </button>
+              <button
+                onClick={handleLogout}
+                className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors"
+                role="menuitem"
+              >
+                <LogOut size={16} />
+                Logout
+              </button>
+            </>
+          ) : (
+            <button
+              onClick={handleLogin}
+              className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2 transition-colors"
+              role="menuitem"
+            >
+              <LogIn size={16} />
+              Login
+            </button>
+          )}
         </div>
       )}
     </div>
