@@ -6,6 +6,7 @@ import ProtectedRoute from './components/common/ProtectedRoute';
 // Page Imports
 import Home from './pages/Home';
 import Dashboard from './pages/Dashboard';
+import Todo from './pages/Todo';
 import Upload from './pages/Upload';
 import Document from './pages/Document';
 import Settings from './pages/Settings';
@@ -41,21 +42,29 @@ function App() {
                 </ProtectedRoute>
               } 
             />
-            <Route 
-              path="/dashboard" 
+            <Route
+              path="/dashboard"
               element={
                 <ProtectedRoute>
                   <Dashboard />
                 </ProtectedRoute>
-              } 
+              }
             />
-            <Route 
-              path="/document/:id" 
+            <Route
+              path="/todos"
+              element={
+                <ProtectedRoute>
+                  <Todo />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/document/:id"
               element={
                 <ProtectedRoute>
                   <Document />
                 </ProtectedRoute>
-              } 
+              }
             />
             <Route 
               path="/quiz/:documentId" 

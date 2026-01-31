@@ -12,6 +12,7 @@ const DashboardComponent = ({ children, user }) => {
     
     const menuItems = [
         { name: 'Library', path: '/dashboard', icon: BookOpen },
+        { name: 'Study Tasks', path: '/todos', icon: CheckCircle2 },
         { name: 'Upload PDF', path: '/upload', icon: FileUp },
         { name: 'Settings', path: '/settings', icon: Settings },
     ];

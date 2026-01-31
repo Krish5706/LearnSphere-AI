@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { ShieldCheck, LayoutDashboard, FileUp } from 'lucide-react';
+import { ShieldCheck, LayoutDashboard, FileUp, CheckSquare } from 'lucide-react';
 import ProfileDropdown from './Dropdown';
 
 const Navbar = () => {
@@ -23,7 +23,10 @@ const Navbar = () => {
           <FileUp size={18} /> Upload
         </Link>
         <Link to="/dashboard" className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all font-medium ${isActive('/dashboard')}`}>
-          <LayoutDashboard size={18} /> My Library
+          <LayoutDashboard size={18} /> Library
+        </Link>
+        <Link to="/todos" className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all font-medium ${isActive('/todos')}`}>
+          <CheckSquare size={18} /> Tasks
         </Link>
 
         <div className="h-6 w-[1px] bg-slate-200 mx-2"></div>
