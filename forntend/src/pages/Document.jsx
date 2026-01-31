@@ -125,11 +125,19 @@ const Document = () => {
                         </div>
 
                         {/* Summary Content */}
-                        {summaryType === 'short' && <ShortSummary text={doc.summary?.short || 'Short summary not available'} />}
+                        {summaryType === 'short' && (
+                            <ShortSummary
+                                text={doc.summary?.short || 'Short summary not available'}
+                                fileName={doc.fileName}
+                                onDownloadReport={handleDownloadReport}
+                            />
+                        )}
                         {summaryType === 'medium' && (
                             <MediumSummary
                                 content={doc.summary?.medium || 'Medium summary not available'}
                                 keyInsights={doc.keyPoints || []}
+                                fileName={doc.fileName}
+                                onDownloadReport={handleDownloadReport}
                             />
                         )}
                         {summaryType === 'detailed' && (
@@ -137,6 +145,7 @@ const Document = () => {
                                 content={doc.summary?.detailed || 'Detailed summary not available'}
                                 fileName={doc.fileName}
                                 keyInsights={doc.keyPoints || []}
+                                onDownloadReport={handleDownloadReport}
                             />
                         )}
                     </div>

@@ -1,14 +1,86 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
-import { Sparkles, FileText, Copy, Check } from 'lucide-react';
+import { Sparkles, FileText, Copy, Check, Download, ChevronDown } from 'lucide-react';
 
-const ShortSummary = ({ text }) => {
+const ShortSummary = ({ text, fileName, onDownloadReport }) => {
   const [copied, setCopied] = useState(false);
+  const [exportDropdownOpen, setExportDropdownOpen] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const dropdownRef = useRef(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setExportDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleExport = async (format) => {
+    if (exporting) return;
+
+    setExporting(true);
+    setExportDropdownOpen(false);
+
+    try {
+      if (format === 'pdf') {
+        // Call backend PDF exporter
+        const response = await onDownloadReport('short');
+
+        // Case 1: backend returns a URL string
+        if (typeof response === 'string') {
+          const link = document.createElement('a');
+          link.href = response;
+          link.download = `${fileName}_Short_Summary.pdf`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        }
+
+        // Case 2: backend returns a fetch Response
+        if (response instanceof Response) {
+          const blob = await response.blob();
+          const url = URL.createObjectURL(blob);
+
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = `${fileName}_Short_Summary.pdf`;
+          document.body.appendChild(link);
+          link.click();
+
+          document.body.removeChild(link);
+          URL.revokeObjectURL(url);
+        }
+      } else {
+        // Generate and download TXT or Markdown
+        const mimeType = format === 'txt' ? 'text/plain;charset=utf-8' : 'text/markdown;charset=utf-8';
+        const filename = `${fileName}_Short_Summary.${format}`;
+        const blob = new Blob([text], { type: mimeType });
+
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      }
+    } catch (error) {
+      console.error('Export failed:', error);
+    } finally {
+      setExporting(false);
+    }
   };
 
   return (
@@ -23,13 +95,54 @@ const ShortSummary = ({ text }) => {
             <p className="text-xs text-slate-500 font-medium">Quick understanding / revision</p>
           </div>
         </div>
-        <button
-          onClick={handleCopy}
-          className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-slate-600 hover:bg-white hover:text-blue-600 rounded-xl transition-all shadow-sm hover:shadow-md"
-        >
-          {copied ? <Check size={16} className="text-green-500" /> : <Copy size={16} />}
-          {copied ? 'Copied!' : 'Copy'}
-        </button>
+
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleCopy}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-slate-600 hover:bg-white hover:text-blue-600 rounded-xl transition-all shadow-sm hover:shadow-md"
+          >
+            {copied ? <Check size={16} className="text-green-500" /> : <Copy size={16} />}
+            {copied ? 'Copied!' : 'Copy'}
+          </button>
+
+          <div className="relative" ref={dropdownRef}>
+            <button
+              onClick={() => setExportDropdownOpen(!exportDropdownOpen)}
+              disabled={exporting}
+              className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-slate-600 hover:bg-white hover:text-blue-600 rounded-xl transition-all shadow-sm hover:shadow-md disabled:opacity-50"
+            >
+              <Download size={16} />
+              {exporting ? 'Exporting...' : 'Export'}
+              <ChevronDown size={14} className={`transition-transform ${exportDropdownOpen ? 'rotate-180' : ''}`} />
+            </button>
+
+            {exportDropdownOpen && (
+              <div className="absolute right-0 mt-2 w-44 bg-white rounded-lg shadow-lg border border-slate-200 py-1 z-50">
+                <button
+                  onClick={() => handleExport('pdf')}
+                  className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2 transition-colors"
+                >
+                  <FileText size={16} />
+                  Export as PDF
+                </button>
+                <button
+                  onClick={() => handleExport('txt')}
+                  className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2 transition-colors"
+                >
+                  <FileText size={16} />
+                  Export as TXT
+                </button>
+                <button
+                  onClick={() => handleExport('md')}
+                  className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2 transition-colors"
+                >
+                  <FileText size={16} />
+                  Export as Markdown
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
       <div className="p-8">

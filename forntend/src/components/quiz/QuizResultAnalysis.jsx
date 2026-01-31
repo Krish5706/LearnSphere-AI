@@ -1,11 +1,141 @@
 import React, { useState, useEffect } from 'react';
-import { TrendingUp, TrendingDown, Target, AlertCircle, CheckCircle, XCircle, Award } from 'lucide-react';
+import { TrendingUp, TrendingDown, Target, AlertCircle, CheckCircle, XCircle, Award, Download, ChevronDown, FileText, File } from 'lucide-react';
 import api from '../../services/api';
 
 const QuizResultAnalysis = ({ quizAnalysis, documentId, quizzes, onDownloadReport }) => {
     if (!quizAnalysis) return null;
 
     const { score, totalQuestions, percentage, performanceLevel, feedback, topicsToFocus, answeredQuestions } = quizAnalysis;
+
+    const [exportDropdownOpen, setExportDropdownOpen] = useState(false);
+    const [exporting, setExporting] = useState(false);
+    const dropdownRef = useRef(null);
+
+    // Close dropdown when clicking outside
+    useEffect(() => {
+      const handleClickOutside = (event) => {
+        if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+          setExportDropdownOpen(false);
+        }
+      };
+
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    // Generate export content
+    const generateExportContent = (format) => {
+        const date = new Date().toLocaleDateString();
+        let content = '';
+
+        if (format === 'txt') {
+            content = `QUIZ RESULTS SUMMARY
+==================
+
+Quiz Title: Quiz Results
+Date Created: ${date}
+Score: ${score}/${totalQuestions} (${percentage}%)
+Performance Level: ${performanceLevel}
+
+FEEDBACK
+--------
+${feedback}
+
+AREAS TO FOCUS ON
+-----------------
+${topicsToFocus?.map((topic, idx) => `${idx + 1}. ${topic.topic}\n   Reason: ${topic.reason}`).join('\n\n') || 'None identified'}
+
+QUESTION REVIEW
+---------------
+${answeredQuestions?.map((q, idx) => {
+    const status = q.isCorrect ? '✓ CORRECT' : '✗ INCORRECT';
+    return `Question ${idx + 1}: ${status}
+${q.question}
+
+Your Answer: ${q.userAnswer}
+Correct Answer: ${q.correctAnswer}
+
+Explanation: ${q.explanation}
+`;
+}).join('\n---\n') || 'No questions available'}
+
+RECOMMENDATIONS
+---------------
+${isGoodScore ?
+    '✓ Great understanding of the material!\n✓ Focus on the highlighted areas to reach mastery.\n✓ Consider teaching others to deepen your knowledge.' :
+    '• Review the material focusing on weak areas.\n• Re-read sections related to incorrect answers.\n• Try the quiz again after studying the problem areas.\n• Use the summaries and mind maps for better understanding.'
+}
+`;
+        } else if (format === 'md') {
+            content = `# Quiz Results Summary
+
+**Quiz Title:** Quiz Results  
+**Date Created:** ${date}  
+**Score:** ${score}/${totalQuestions} (${percentage}%)  
+**Performance Level:** ${performanceLevel}
+
+## Feedback
+${feedback}
+
+## Areas to Focus On
+${topicsToFocus?.map((topic, idx) => `${idx + 1}. **${topic.topic}**\n   *Reason:* ${topic.reason}`).join('\n\n') || 'None identified'}
+
+## Question Review
+${answeredQuestions?.map((q, idx) => {
+    const status = q.isCorrect ? '✅ CORRECT' : '❌ INCORRECT';
+    return `### Question ${idx + 1}: ${status}
+${q.question}
+
+- **Your Answer:** ${q.userAnswer}
+- **Correct Answer:** ${q.correctAnswer}
+
+**Explanation:** ${q.explanation}
+`;
+}).join('\n---\n') || 'No questions available'}
+
+## Recommendations
+${isGoodScore ?
+    '- ✅ Great understanding of the material!\n- ✅ Focus on the highlighted areas to reach mastery.\n- ✅ Consider teaching others to deepen your knowledge.' :
+    '- Review the material focusing on weak areas.\n- Re-read sections related to incorrect answers.\n- Try the quiz again after studying the problem areas.\n- Use the summaries and mind maps for better understanding.'
+}
+`;
+        }
+
+        return content;
+    };
+
+    // Handle export
+    const handleExport = async (format) => {
+        setExporting(true);
+        setExportDropdownOpen(false);
+
+        try {
+            if (format === 'pdf') {
+                // Use existing PDF export
+                await onDownloadReport('quiz');
+            } else {
+                // Generate and download text/markdown
+                const content = generateExportContent(format);
+                const mimeType = format === 'txt' ? 'text/plain' : 'text/markdown';
+                const extension = format;
+                const filename = `quiz-results.${extension}`;
+
+                const blob = new Blob([content], { type: mimeType });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = filename;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+            }
+        } catch (error) {
+            console.error('Export failed:', error);
+        } finally {
+            setExporting(false);
+        }
+    };
 
     // Get color based on performance
     const getPerformanceColor = () => {
@@ -162,14 +292,53 @@ const QuizResultAnalysis = ({ quizAnalysis, documentId, quizzes, onDownloadRepor
                 </div>
             </div>
 
-            {/* Download Report Button */}
-            <button
-                onClick={() => onDownloadReport('quiz')}
-                className="w-full py-4 px-6 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-2xl font-black flex items-center justify-center gap-2 hover:shadow-lg shadow-blue-200 transition-all"
-            >
-                <Award size={20} />
-                Download Quiz Report as PDF
-            </button>
+            {/* Export Dropdown */}
+            <div className="relative w-full" ref={dropdownRef}>
+                <button
+                    onClick={() => setExportDropdownOpen(!exportDropdownOpen)}
+                    disabled={exporting}
+                    className="w-full py-4 px-6 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-2xl font-black flex items-center justify-center gap-2 hover:shadow-lg shadow-blue-200 transition-all disabled:opacity-50"
+                >
+                    <Download size={20} />
+                    {exporting ? 'Exporting...' : 'Export Quiz Results'}
+                    <ChevronDown size={16} className={`ml-2 transition-transform ${exportDropdownOpen ? 'rotate-180' : ''}`} />
+                </button>
+
+                {exportDropdownOpen && (
+                    <div className="absolute bottom-full left-0 right-0 mb-2 bg-white rounded-2xl shadow-lg border border-slate-200 py-2 z-50">
+                        <button
+                            onClick={() => handleExport('pdf')}
+                            className="w-full text-left px-6 py-3 text-slate-700 hover:bg-slate-50 flex items-center gap-3 transition-colors"
+                        >
+                            <FileText size={18} />
+                            <div>
+                                <div className="font-bold">Export as PDF</div>
+                                <div className="text-xs text-slate-500">Clean, formatted report</div>
+                            </div>
+                        </button>
+                        <button
+                            onClick={() => handleExport('txt')}
+                            className="w-full text-left px-6 py-3 text-slate-700 hover:bg-slate-50 flex items-center gap-3 transition-colors"
+                        >
+                            <FileText size={18} />
+                            <div>
+                                <div className="font-bold">Export as TXT</div>
+                                <div className="text-xs text-slate-500">Plain text format</div>
+                            </div>
+                        </button>
+                        <button
+                            onClick={() => handleExport('md')}
+                            className="w-full text-left px-6 py-3 text-slate-700 hover:bg-slate-50 flex items-center gap-3 transition-colors"
+                        >
+                            <File size={18} />
+                            <div>
+                                <div className="font-bold">Export as Markdown</div>
+                                <div className="text-xs text-slate-500">Structured markdown</div>
+                            </div>
+                        </button>
+                    </div>
+                )}
+            </div>
         </div>
     );
 };

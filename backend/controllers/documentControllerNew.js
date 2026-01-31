@@ -325,6 +325,11 @@ exports.generateReportPDF = async (req, res) => {
         // Generate PDF
         const pdfPath = await pdfExporter.generateReport(exportData, reportType || 'comprehensive');
 
+        // Check if PDF was generated successfully
+        if (!fs.existsSync(pdfPath) || fs.statSync(pdfPath).size === 0) {
+            throw new Error('Failed to generate PDF report - file is empty');
+        }
+
         // Store reference in document
         const reportFileName = path.basename(pdfPath);
         doc.generatedReports.push({
