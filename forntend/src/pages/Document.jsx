@@ -136,6 +136,7 @@ const Document = () => {
                             <DetailedSummary
                                 content={doc.summary?.detailed || 'Detailed summary not available'}
                                 fileName={doc.fileName}
+                                keyInsights={doc.keyPoints || []}
                             />
                         )}
                     </div>

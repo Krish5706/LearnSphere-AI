@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
-import { Layers, Download, Copy, Check } from 'lucide-react';
+import { Layers, Download, Copy, Check, FileText, Target } from 'lucide-react';
 
-const DetailedSummary = ({ content, fileName }) => {
+const DetailedSummary = ({ content, fileName, keyInsights }) => {
   const [copied, setCopied] = useState(false);
 
   const handleDownload = () => {
@@ -50,11 +50,35 @@ const DetailedSummary = ({ content, fileName }) => {
       </div>
 
       <div className="p-8 space-y-8">
-        <div className="prose prose-blue max-w-none">
-          <ReactMarkdown>{content}</ReactMarkdown>
+        {content && content !== 'Detailed summary not available' ? (
+          <div className="prose prose-blue max-w-none">
+            <ReactMarkdown>{content}</ReactMarkdown>
+          </div>
+        ) : (
+          <div className="text-center py-12">
+            <div className="w-16 h-16 bg-blue-50 text-blue-400 rounded-full flex items-center justify-center mx-auto mb-4">
+              <FileText size={32} />
+            </div>
+            <p className="text-slate-500 font-medium">Detailed Summary not available</p>
+            <p className="text-xs text-slate-400 mt-1">Please try re-processing the document</p>
+          </div>
+        )}
+      </div>
+
+      <div className="px-8 py-4 bg-gradient-to-r from-slate-50 to-blue-50 border-t border-slate-200 flex justify-between items-center">
+        <div className="flex items-center gap-2">
+          <Target size={14} className="text-blue-500" />
+          <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest">
+            Detailed Analysis
+          </span>
+        </div>
+        <div className="text-xs text-slate-400 font-medium">
+          {keyInsights?.length || 0} key concepts identified
         </div>
       </div>
     </div>
+
+    
   );
 };
 

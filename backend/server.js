@@ -7,6 +7,7 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const morgan = require('morgan');
 const path = require('path');
+const dns = require('dns');
 
 // Import Routes
 const authRoutes = require('./routes/authRoutes');
@@ -35,11 +36,6 @@ app.use((req, res, next) => {
     }
     next();
 });
-
-// 2. DATABASE CONNECTION
-mongoose.connect(process.env.MONGODB_URI)
-    .then(() => console.log('✅ MongoDB Connected: Study Vault is Ready'))
-    .catch(err => console.log('❌ MongoDB Connection Error:', err));
 
 // 3. MOUNT API ROUTES
 app.use('/api/auth', authRoutes);         // Login & Registration

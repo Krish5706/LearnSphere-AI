@@ -27,7 +27,7 @@ router.post('/process', protect, docController.processPDF);
 
 // Submit quiz answers (Step 3: User submits quiz) - MUST BE BEFORE /:id
 // Routes: /api/documents/submit-quiz (matches frontend API call)
-router.post('/quiz/submit', protect, docController.submitQuizAnswers); // Alternative route
+router.post('/submit-quiz', protect, docController.submitQuizAnswers);
 
 // Generate report PDF (Step 4: Export results as PDF)
 router.post('/report/generate', protect, docController.generateReportPDF);
