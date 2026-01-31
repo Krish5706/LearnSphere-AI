@@ -103,7 +103,7 @@ const AddEditTodoModal = ({ isOpen, todo, onClose, onSaved }) => {
                 title: formData.title.trim(),
                 description: formData.description.trim(),
                 priority: formData.priority,
-                dueDate: new Date(formData.dueDate).toISOString()
+                dueDate: formData.dueDate // Send date string directly, MongoDB will parse it
             };
 
             // Only include linkedEntity if type is selected
@@ -123,7 +123,8 @@ const AddEditTodoModal = ({ isOpen, todo, onClose, onSaved }) => {
             onClose();
         } catch (err) {
             console.error('Error saving todo:', err);
-            setError(err.message || 'Failed to save task. Please try again.');
+            const errorMessage = err?.message || err?.data?.message || 'Failed to save task. Please try again.';
+            setError(errorMessage);
         } finally {
             setLoading(false);
         }
@@ -273,6 +274,17 @@ const AddEditTodoModal = ({ isOpen, todo, onClose, onSaved }) => {
                                 className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 disabled={loading}
                             />
+                            <p className="text-xs text-slate-500 mt-2">
+                                📌 <strong>How to find {formData.linkedEntity.type} ID:</strong>
+                                <br />
+                                • Go to your {formData.linkedEntity.type === 'document' ? 'Library/Dashboard' : 'study materials'}
+                                <br />
+                                • Click on the specific {formData.linkedEntity.type}
+                                <br />
+                                • Copy the ID from the URL (last part after /)
+                                <br />
+                                • Or look for "ID:" label in the page details
+                            </p>
                         </div>
                     )}
 

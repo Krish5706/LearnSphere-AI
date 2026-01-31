@@ -140,7 +140,7 @@ const Dashboard = () => {
                                         {todo.description && (
                                             <p className="text-sm text-slate-500 mt-1">{todo.description}</p>
                                         )}
-                                        <div className="flex items-center gap-3 mt-2 text-xs text-slate-500">
+                                        <div className="flex items-center gap-3 mt-2 text-xs text-slate-500 flex-wrap">
                                             <span className="flex items-center gap-1">
                                                 <Calendar size={14} />
                                                 {new Date(todo.dueDate).toLocaleDateString()}
@@ -148,6 +148,11 @@ const Dashboard = () => {
                                             <span className="bg-slate-100 px-2 py-0.5 rounded-full capitalize font-bold">
                                                 {todo.priority}
                                             </span>
+                                            {todo.linkedEntity && todo.linkedEntity.entityId && (
+                                                <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-bold truncate max-w-xs" title={todo.linkedEntity.entityName || todo.linkedEntity.type}>
+                                                    {todo.linkedEntity.entityName || todo.linkedEntity.type}
+                                                </span>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
