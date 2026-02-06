@@ -8,7 +8,8 @@ import DetailedSummary from '../components/summary/DetailedSummary';
 import QuizListNew from '../components/quiz/QuizListNew';
 import QuizResultAnalysis from '../components/quiz/QuizResultAnalysis';
 import Notes from '../components/Notes';
-import { FileText, BrainCircuit, GraduationCap, Loader2, ChevronLeft, Lock, Sparkles, BarChart3, BookText } from 'lucide-react';
+import Roadmap from '../components/Roadmap';
+import { FileText, BrainCircuit, GraduationCap, Loader2, ChevronLeft, Lock, Sparkles, BarChart3, BookText, Map } from 'lucide-react';
 
 const Document = () => {
     const { id } = useParams();
@@ -95,6 +96,9 @@ const Document = () => {
                     <button onClick={() => setActiveTab('summary')} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'summary' ? 'bg-white text-blue-600' : 'text-slate-600'}`}>
                         <FileText size={16} /> Summary
                     </button>
+                    <button onClick={() => setActiveTab('roadmap')} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'roadmap' ? 'bg-white text-blue-600' : 'text-slate-600'}`}>
+                        <Map size={16} /> Roadmap
+                    </button>
                     <button onClick={() => setActiveTab('quiz')} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'quiz' ? 'bg-white text-blue-600' : 'text-slate-600'}`}>
                         <GraduationCap size={16} /> Quiz {isRestricted && <Lock size={12} />}
                     </button>
@@ -106,6 +110,15 @@ const Document = () => {
 
             {/* Content Area */}
             <div className="p-8 max-w-7xl mx-auto">
+                {activeTab === 'roadmap' && (
+                    <Roadmap
+                        roadmap={doc.roadmap}
+                        fileName={doc.fileName}
+                        learnerLevel={doc.learnerLevel}
+                        onNavigateToTab={setActiveTab}
+                    />
+                )}
+
                 {activeTab === 'summary' && (
                     <div className="space-y-6">
                         {/* Summary Type Selector */}
@@ -115,31 +128,28 @@ const Document = () => {
                                 <div className="flex bg-slate-100 p-1 rounded-xl max-w-md">
                                     <button
                                         onClick={() => setSummaryType('short')}
-                                        className={`flex-1 px-4 py-2 rounded-lg text-sm font-bold transition-all ${
-                                            summaryType === 'short'
-                                                ? 'bg-white text-blue-600 shadow-sm'
-                                                : 'text-slate-600 hover:text-slate-900'
-                                        }`}
+                                        className={`flex-1 px-4 py-2 rounded-lg text-sm font-bold transition-all ${summaryType === 'short'
+                                            ? 'bg-white text-blue-600 shadow-sm'
+                                            : 'text-slate-600 hover:text-slate-900'
+                                            }`}
                                     >
                                         Short
                                     </button>
                                     <button
                                         onClick={() => setSummaryType('medium')}
-                                        className={`flex-1 px-4 py-2 rounded-lg text-sm font-bold transition-all ${
-                                            summaryType === 'medium'
-                                                ? 'bg-white text-blue-600 shadow-sm'
-                                                : 'text-slate-600 hover:text-slate-900'
-                                        }`}
+                                        className={`flex-1 px-4 py-2 rounded-lg text-sm font-bold transition-all ${summaryType === 'medium'
+                                            ? 'bg-white text-blue-600 shadow-sm'
+                                            : 'text-slate-600 hover:text-slate-900'
+                                            }`}
                                     >
                                         Medium
                                     </button>
                                     <button
                                         onClick={() => setSummaryType('detailed')}
-                                        className={`flex-1 px-4 py-2 rounded-lg text-sm font-bold transition-all ${
-                                            summaryType === 'detailed'
-                                                ? 'bg-white text-blue-600 shadow-sm'
-                                                : 'text-slate-600 hover:text-slate-900'
-                                        }`}
+                                        className={`flex-1 px-4 py-2 rounded-lg text-sm font-bold transition-all ${summaryType === 'detailed'
+                                            ? 'bg-white text-blue-600 shadow-sm'
+                                            : 'text-slate-600 hover:text-slate-900'
+                                            }`}
                                     >
                                         Detailed
                                     </button>
@@ -182,14 +192,21 @@ const Document = () => {
                     <div className="relative">
                         {/* THE PAYWALL OVERLAY - Only for Quiz */}
                         {isRestricted && (
-                            <div className="absolute inset-0 z-50 flex items-center justify-center bg-white/60 backdrop-blur-md rounded-3xl border-2 border-dashed border-slate-200">
+                            <div className="absolute inset-0 z-50 flex items-start justify-center bg-white/60 backdrop-blur-md rounded-3xl border-2 border-dashed border-slate-200 pt-24">
                                 <div className="text-center p-8 bg-white shadow-2xl rounded-3xl max-w-md border border-slate-100">
                                     <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
                                         <Sparkles size={32} />
                                     </div>
-                                    <h2 className="text-2xl font-black text-slate-900 mb-2">Unlock Pro Analysis</h2>
-                                    <p className="text-slate-500 mb-6 text-sm">You've used your 5 free credits. Subscribe now to unlock Quizzes and Unlimited PDF processing.</p>
-                                    <Link to="/pricing" className="block w-full py-4 bg-blue-600 text-white rounded-2xl font-bold shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all">
+                                    <h2 className="text-2xl font-black text-slate-900 mb-2">
+                                        Unlock Pro Analysis
+                                    </h2>
+                                    <p className="text-slate-500 mb-6 text-sm">
+                                        You've used your 5 free credits. Subscribe now to unlock Quizzes and Unlimited PDF processing.
+                                    </p>
+                                    <Link
+                                        to="/pricing"
+                                        className="block w-full py-4 bg-blue-600 text-white rounded-2xl font-bold shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all"
+                                    >
                                         Upgrade to Pro
                                     </Link>
                                 </div>

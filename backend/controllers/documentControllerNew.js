@@ -87,10 +87,16 @@ exports.uploadPDF = async (req, res) => {
 // ============================================
 exports.processPDF = async (req, res) => {
     try {
-        const { documentId, processingType } = req.body; // 'summary', 'quiz', or 'comprehensive'
+        const { documentId, processingType } = req.body; // 'summary', 'quiz', 'roadmap', or 'comprehensive'
 
         if (!documentId || !processingType) {
             return res.status(400).json({ message: "Document ID and processing type required" });
+        }
+
+        // Validate processingType
+        const allowedTypes = ['summary', 'quiz', 'roadmap', 'comprehensive'];
+        if (!allowedTypes.includes(processingType)) {
+            return res.status(400).json({ message: "Invalid processing type" });
         }
 
         if (!process.env.GEMINI_API_KEY) {
@@ -149,6 +155,13 @@ exports.processPDF = async (req, res) => {
                 results.quizzes = await processor.generateQuiz(pdfText, 5);
             }
 
+            if (processingType === 'roadmap') {
+                console.log('🗺️ Generating learning roadmap...');
+                const learnerLevel = req.body.learnerLevel || 'beginner';
+                results.roadmap = await processor.generateRoadmap(pdfText, 5, learnerLevel);
+                results.learnerLevel = learnerLevel;
+            }
+
             
             // Update document with results
             // Merge new summary results with existing ones to avoid overwriting.
@@ -159,7 +172,8 @@ exports.processPDF = async (req, res) => {
             }
             doc.keyPoints = results.keyPoints || doc.keyPoints;
             doc.quizzes = results.quizzes || doc.quizzes;
-                        doc.processingStatus = 'completed';
+            doc.roadmap = results.roadmap || doc.roadmap;
+            doc.processingStatus = 'completed';
             doc.processingType = processingType;
             doc.processingDetails = {
                 processedAt: new Date(),
@@ -314,7 +328,8 @@ exports.generateReportPDF = async (req, res) => {
             fileName: doc.fileName,
             summary: doc.summary,
             keyPoints: doc.keyPoints,
-                        quizAnalysis: doc.quizResults?.[doc.quizResults.length - 1] || null, // Latest quiz result
+            roadmap: doc.roadmap,
+            quizAnalysis: doc.quizResults?.[doc.quizResults.length - 1] || null, // Latest quiz result
             answeredQuestions: doc.quizzes?.map((q, idx) => ({
                 ...q,
                 userAnswer: doc.quizResults?.[0]?.userAnswers?.[idx]?.selectedAnswer,

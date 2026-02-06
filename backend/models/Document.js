@@ -31,7 +31,7 @@ const documentSchema = new mongoose.Schema({
     },
     processingType: {
         type: String,
-        enum: ['summary', 'quiz', 'comprehensive'],
+        enum: ['summary', 'quiz', 'comprehensive', 'roadmap'],
         default: 'comprehensive'
     },
     
@@ -45,7 +45,24 @@ const documentSchema = new mongoose.Schema({
     keyPoints: [{
         type: String
     }],
-    
+
+    // Learning roadmap
+    roadmap: [{
+        step: { type: Number },
+        title: { type: String },
+        description: { type: String },
+        estimatedTime: { type: String },
+        resources: [{ type: String }],
+        link: { type: String } // Link to existing website pages
+    }],
+
+    // Learner level for roadmap
+    learnerLevel: {
+        type: String,
+        enum: ['beginner', 'intermediate', 'advanced'],
+        default: 'beginner'
+    },
+
     // Quiz array with scoring
     quizzes: [{
         id: { type: String },
@@ -75,7 +92,7 @@ const documentSchema = new mongoose.Schema({
 
     // Generated report PDFs
     generatedReports: [{
-        type: { type: String, enum: ['summary', 'quiz', 'comprehensive'] },
+        type: { type: String, enum: ['summary', 'quiz', 'comprehensive', 'roadmap'] },
         filePath: { type: String },
         generatedAt: { type: Date, default: Date.now }
     }],

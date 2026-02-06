@@ -5,6 +5,7 @@ import api from '../../services/api';
 const ProcessingOptions = ({ documentId, onProcessingComplete, onCancel }) => {
     const [selectedOption, setSelectedOption] = useState(null);
     const [summaryType, setSummaryType] = useState('short');
+    const [learnerLevel, setLearnerLevel] = useState('beginner');
     const [isProcessing, setIsProcessing] = useState(false);
     const [error, setError] = useState('');
 
@@ -23,6 +24,13 @@ const ProcessingOptions = ({ documentId, onProcessingComplete, onCancel }) => {
             description: 'Generate interactive quiz to test your knowledge',
             icon: BookOpen,
             color: 'purple',
+        },
+        {
+            id: 'roadmap',
+            title: 'Generate Learning Roadmap',
+            description: 'Create a personalized learning roadmap with step-by-step guidance',
+            icon: BrainCircuit,
+            color: 'green',
         },
                 {
             id: 'comprehensive',
@@ -52,6 +60,7 @@ const ProcessingOptions = ({ documentId, onProcessingComplete, onCancel }) => {
                 documentId,
                 processingType,
                 summaryType: selectedOption === 'summary' ? summaryType : undefined,
+                learnerLevel: selectedOption === 'roadmap' ? learnerLevel : undefined,
             });
 
             onProcessingComplete(response.data);
@@ -143,6 +152,33 @@ const ProcessingOptions = ({ documentId, onProcessingComplete, onCancel }) => {
                                     >
                                         <p className="font-bold text-sm text-slate-900">{type.label}</p>
                                         <p className="text-xs text-slate-500 mt-1">{type.desc}</p>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Learner Level Selection */}
+                    {selectedOption === 'roadmap' && (
+                        <div className="mb-8 p-6 bg-slate-50 rounded-2xl border border-slate-200">
+                            <h3 className="font-bold text-slate-900 mb-4">Target Learner Level</h3>
+                            <div className="grid grid-cols-3 gap-3">
+                                {[
+                                    { value: 'beginner', label: 'Beginner', desc: 'Basic concepts & fundamentals' },
+                                    { value: 'intermediate', label: 'Intermediate', desc: 'Advanced topics & applications' },
+                                    { value: 'advanced', label: 'Advanced', desc: 'Expert-level analysis & research' },
+                                ].map((level) => (
+                                    <button
+                                        key={level.value}
+                                        onClick={() => setLearnerLevel(level.value)}
+                                        className={`p-4 rounded-xl border-2 transition-all text-center ${
+                                            learnerLevel === level.value
+                                                ? 'border-green-600 bg-green-50'
+                                                : 'border-slate-200 hover:border-slate-300'
+                                        }`}
+                                    >
+                                        <p className="font-bold text-sm text-slate-900">{level.label}</p>
+                                        <p className="text-xs text-slate-500 mt-1">{level.desc}</p>
                                     </button>
                                 ))}
                             </div>

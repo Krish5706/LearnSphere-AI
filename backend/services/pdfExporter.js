@@ -93,6 +93,7 @@ class PDFExporter {
             case 'medium': this._addMediumSummaryContent(doc, data); break;
             case 'detailed': this._addDetailedSummaryContent(doc, data); break;
             case 'quiz': this._addQuizContent(doc, data); break;
+            case 'roadmap': this._addRoadmapContent(doc, data); break;
             default: this._addComprehensiveContent(doc, data); break;
         }
     }
@@ -218,6 +219,127 @@ class PDFExporter {
     }
 
     /* ------------------------------------------------------------------ */
+    /* Roadmap Section                                                   */
+    /* ------------------------------------------------------------------ */
+
+    _addRoadmapContent(doc, data) {
+        // Document title - 18-22pt as per rules
+        doc.fontSize(20).font('Helvetica-Bold').fillColor('#000000')
+            .text('Learning Roadmap', { align: 'center' });
+        doc.moveDown(0.5);
+
+        // Document info
+        doc.fontSize(11).font('Helvetica').fillColor('#000000')
+            .text(`Document: ${data.fileName || 'Unknown'}`, { align: 'center' })
+            .text(`Generated: ${formatDate()}`, { align: 'center' });
+        doc.moveDown(1.5);
+
+        if (!Array.isArray(data.roadmap) || data.roadmap.length === 0) {
+            doc.fontSize(14).font('Helvetica-Bold').fillColor('#000000')
+                .text('No Roadmap Available', { align: 'center' });
+            doc.moveDown(0.5);
+            doc.fontSize(11).font('Helvetica').fillColor('#000000')
+                .text('Generate a learning roadmap to see your personalized study plan.', { align: 'center' });
+            return;
+        }
+
+        // Section heading - H1 style
+        doc.fontSize(16).font('Helvetica-Bold').fillColor('#000000')
+            .text('Learning Journey Overview');
+        doc.moveDown(0.5);
+
+        // Overview paragraph
+        doc.fontSize(11).font('Helvetica').fillColor('#000000')
+            .text('This roadmap provides a structured approach to mastering the document content. Each step builds upon the previous one, ensuring progressive skill development and deep understanding.', { lineGap: 4 });
+        doc.moveDown(1);
+
+        // Roadmap steps
+        data.roadmap.forEach((step, index) => {
+            // Check for page break
+            if (doc.y > 650) {
+                doc.addPage();
+            }
+
+            // Step heading - H2 style
+            doc.fontSize(14).font('Helvetica-Bold').fillColor('#000000')
+                .text(`Step ${step.step || (index + 1)}: ${step.title || 'Untitled Step'}`);
+            doc.moveDown(0.3);
+
+            // Time estimate
+            if (step.estimatedTime) {
+                doc.fontSize(11).font('Helvetica').fillColor('#000000')
+                    .text(`Estimated Time: ${step.estimatedTime}`);
+                doc.moveDown(0.3);
+            }
+
+            // Description
+            if (step.description) {
+                doc.fontSize(11).font('Helvetica').fillColor('#000000')
+                    .text(step.description, {
+                        width: 450,
+                        lineGap: 4,
+                        align: 'left'
+                    });
+                doc.moveDown(0.5);
+            }
+
+            // Resources
+            if (Array.isArray(step.resources) && step.resources.length > 0) {
+                doc.fontSize(12).font('Helvetica-Bold').fillColor('#000000')
+                    .text('Recommended Resources:');
+                doc.moveDown(0.3);
+
+                step.resources.forEach((resource) => {
+                    doc.fontSize(10).font('Helvetica').fillColor('#000000')
+                        .text(`• ${resource || ''}`);
+                    doc.moveDown(0.2);
+                });
+                doc.moveDown(0.5);
+            }
+
+            // Related content link
+            if (step.link) {
+                doc.fontSize(11).font('Helvetica').fillColor('#000000')
+                    .text(`Related: ${this._getLinkText(step.link)}`);
+                doc.moveDown(0.3);
+            }
+
+            // Separator line
+            doc.moveDown(0.5);
+            doc.moveTo(50, doc.y).lineTo(545, doc.y).stroke('#000000');
+            doc.moveDown(1);
+        });
+
+        // Learning tips section
+        doc.moveDown(0.5);
+        doc.fontSize(14).font('Helvetica-Bold').fillColor('#000000')
+            .text('Learning Tips', { align: 'center' });
+        doc.moveDown(0.5);
+
+        const tips = [
+            'Complete each step before moving to the next for optimal learning',
+            'Take notes and revisit challenging concepts as needed',
+            'Practice regularly to reinforce your understanding',
+            'Use the recommended resources for additional context',
+            'Track your progress and celebrate milestones'
+        ];
+
+        tips.forEach(tip => {
+            doc.fontSize(10).font('Helvetica').fillColor('#000000')
+                .text(`• ${tip}`, { align: 'left' });
+            doc.moveDown(0.2);
+        });
+    }
+
+    _getLinkText(link) {
+        switch (link) {
+            case '/summary': return 'View Document Summary';
+            case '/quiz': return 'Take Related Quiz';
+            default: return 'View Related Content';
+        }
+    }
+
+    /* ------------------------------------------------------------------ */
     /* Cover Page & Table of Contents                                     */
     /* ------------------------------------------------------------------ */
 
@@ -270,6 +392,7 @@ class PDFExporter {
             medium: 'Medium Summary',
             detailed: 'Detailed Summary',
             quiz: 'Quiz Results',
+            roadmap: 'Learning Roadmap',
             comprehensive: 'Comprehensive Analysis'
         }[type] || 'Analysis Report';
     }
@@ -282,6 +405,7 @@ class PDFExporter {
             case 'medium': return [...baseContents, { title: 'Medium Summary', page: 4 }, { title: 'Key Insights', page: 5 }];
             case 'detailed': return [...baseContents, { title: 'Detailed Summary', page: 4 }, { title: 'Key Insights', page: 5 }];
             case 'quiz': return [...baseContents, { title: 'Quiz Results', page: 4 }, { title: 'Question Review', page: 5 }, { title: 'Areas for Improvement', page: 6 }];
+            case 'roadmap': return [...baseContents, { title: 'Learning Roadmap', page: 4 }];
             default: return [...baseContents, { title: 'Document Summaries', page: 4 }, { title: 'Key Points', page: 5 }, { title: 'Quiz Results', page: 6 }, { title: 'Question Review', page: 7 }, { title: 'Areas for Improvement', page: 8 }];
         }
     }

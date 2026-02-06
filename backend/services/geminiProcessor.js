@@ -23,7 +23,8 @@ class GeminiProcessor {
      */
     async generateSummary(content, type = 'short') {
         const prompts = {
-            short: `You are an expert academic content summarizer. Summarize the uploaded PDF content based on SHORT summary length.
+            short: `You are an expert aca
+            demic content summarizer. Summarize the uploaded PDF content based on SHORT summary length.
 
 Output Requirements:
 - Use Markdown for formatting.
@@ -191,6 +192,203 @@ Content:\n${content}`
         if (percentage >= 60) return 'Fair';
         if (percentage >= 50) return 'Needs Work';
         return 'Poor';
+    }
+
+    /**
+     * Generate learning roadmap
+     * @param {string} content - The PDF content
+     * @param {number} steps - Number of roadmap steps (default: 5)
+     * @param {string} learnerLevel - 'beginner', 'intermediate', or 'advanced'
+     * @returns {Promise<Array>} - Array of roadmap steps
+     */
+    async generateRoadmap(content, steps = 5, learnerLevel = 'beginner') {
+        const levelPrompts = {
+            beginner: `Create a comprehensive BEGINNER level learning roadmap with exactly 9 sections based on this content.
+
+🟢 BEGINNER LEVEL ROADMAP STRUCTURE:
+
+1. Roadmap Overview
+   - Learning purpose
+   - What the learner will achieve
+   - Target audience level (Beginner / Intermediate / Advanced)
+
+2. Prerequisites (If Applicable)
+   - Prior knowledge required
+   - Concepts assumed from the document
+
+3. Learning Phases (Progressive)
+   Phase 1: Core Foundations
+   - Objective: Establish fundamental understanding
+   - Topics: Core concept 1, Core concept 2, Core concept 3
+   - Key Skills Developed: Skill 1, Skill 2
+   - Learning Outcomes: Outcome 1, Outcome 2
+
+   Phase 2: Applied Understanding
+   - Objective: Apply and connect concepts
+   - Topics: Applied concept 1, Applied concept 2
+   - Key Skills Developed: Skill 3, Skill 4
+   - Learning Outcomes: Outcome 3, Outcome 4
+
+   Phase 3: Advanced & Strategic Mastery
+   - Objective: Develop deep and analytical expertise
+   - Topics: Advanced concept 1, Advanced concept 2
+   - Key Skills Developed: Skill 5, Skill 6
+   - Learning Outcomes: Outcome 5, Outcome 6
+
+4. Learning Flow & Dependencies
+   - Recommended study order
+   - Concept dependencies
+   - Progression logic
+
+5. Practice & Reinforcement (Optional)
+   - Self-assessment activities
+   - Reflection or review checkpoints
+   - Knowledge consolidation steps
+
+6. Completion Milestones
+   - Phase completion indicators
+   - Mastery checkpoints
+
+7. Final Competency Outcomes
+   - After completing this roadmap, the learner can:
+   - Competency 1
+   - Competency 2
+   - Competency 3
+
+8. Suggested Study Timeline (Optional)
+   - Phase 1: X
+   - Phase 2: X
+   - Phase 3: X
+
+9. Notes & Constraints
+   - Based strictly on the uploaded PDF
+   - No external content included
+   - Adaptable pacing based on learner needs
+
+Return a valid JSON array with this structure:
+[
+  {
+    "step": 1,
+    "title": "Roadmap Overview",
+    "description": "Learning purpose and what the learner will achieve",
+    "estimatedTime": "1-2 hours",
+    "resources": ["Resource 1", "Resource 2"],
+    "link": "https://example.com/resource"
+  }
+]`,
+
+            intermediate: `Create an INTERMEDIATE level learning roadmap with exactly 5 steps based on this content.
+
+🟡 INTERMEDIATE LEVEL ROADMAP STRUCTURE:
+1. Roadmap Overview
+   - Purpose and expected skill growth
+   - Assumes basic familiarity with the topic
+
+2. Knowledge Refresh (Optional)
+   - Objective: Align understanding
+   - Focus Areas: Review of key fundamentals, Clarification of common gaps
+
+3. Applied Concepts
+   - Objective: Apply and connect ideas
+   - Topics: Concept application, Relationships between concepts
+   - Skills Developed: Practical understanding, Analytical thinking
+   - Learning Outcomes: Apply knowledge to examples, Explain interconnections
+
+4. Problem-Solving & Interpretation
+   - Objective: Use knowledge actively
+   - Topics: Case-based reasoning, Interpretation of data or arguments
+   - Skills Developed: Critical thinking, Problem-solving
+   - Learning Outcomes: Solve moderate-level problems, Interpret outcomes correctly
+
+5. Intermediate Completion Milestone
+   - Confident application of concepts
+   - Prepared for advanced learning
+
+Return a valid JSON array with this structure:
+[
+  {
+    "step": 1,
+    "title": "Roadmap Overview",
+    "description": "Purpose and expected skill growth",
+    "estimatedTime": "2-3 hours",
+    "resources": ["Resource 1", "Resource 2"],
+    "link": "https://example.com/resource"
+  }
+]`,
+
+            advanced: `Create an ADVANCED level learning roadmap with exactly 6 steps based on this content.
+
+🔵 ADVANCED LEVEL ROADMAP STRUCTURE:
+1. Roadmap Overview
+   - Focus on mastery and depth
+   - Assumes strong prior knowledge
+
+2. Deep Conceptual Analysis
+   - Objective: Achieve expert-level understanding
+   - Topics: Complex theories, Detailed frameworks or models
+   - Skills Developed: Deep analysis, Conceptual synthesis
+   - Learning Outcomes: Analyze complex ideas, Compare multiple approaches
+
+3. Strategic & Critical Thinking
+   - Objective: Evaluate and reason at a high level
+   - Topics: Trade-offs and implications, Strengths and limitations
+   - Skills Developed: Evaluation, Strategic reasoning
+   - Learning Outcomes: Critically assess concepts, Justify decisions or conclusions
+
+4. Mastery & Insight Generation
+   - Objective: Go beyond the document
+   - Topics: Insight extraction, Advanced interpretation
+   - Skills Developed: Insight generation, Thought leadership
+   - Learning Outcomes: Generate original insights, Form expert-level conclusions
+
+5. Advanced Completion Milestone
+   - Mastery of subject matter
+   - Ability to teach or apply strategically
+
+6. External Reading Resources
+   - Recommended advanced readings and research papers
+   - Scholarly articles and expert publications
+   - Cutting-edge developments and future directions
+
+Return a valid JSON array with this structure:
+[
+  {
+    "step": 1,
+    "title": "Roadmap Overview",
+    "description": "Focus on mastery and depth",
+    "estimatedTime": "3-4 hours",
+    "resources": ["Resource 1", "Resource 2"],
+    "link": "https://example.com/resource"
+  }
+]`
+        };
+
+        const prompt = `${levelPrompts[learnerLevel] || levelPrompts.beginner}
+
+🔒 UNIVERSAL RULES (For All Levels):
+- Use only content from the uploaded PDF
+- Do not mix levels in a single roadmap
+- Maintain consistent structure and tone
+- Keep learning outcomes measurable
+- Ensure PDF-ready formatting
+- Provide 2-3 relevant resources per step
+- Include realistic time estimates
+- Return ONLY valid JSON, no additional text.
+
+Content:\n${content}`;
+
+        try {
+            const result = await this.model.generateContent(prompt);
+            let textResponse = result.response.text();
+            const jsonMatch = textResponse.match(/\[[\s\S]*\]/);
+            if (!jsonMatch) {
+                throw new Error('No valid JSON found in response');
+            }
+            const cleanJson = jsonMatch[0].replace(/```json|```/gi, '').trim();
+            return JSON.parse(cleanJson);
+        } catch (error) {
+            throw new Error(`Failed to generate roadmap: ${error.message}`);
+        }
     }
 
     /**
