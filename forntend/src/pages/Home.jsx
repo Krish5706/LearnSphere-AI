@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Shield, Brain, Zap, ArrowRight } from 'lucide-react';
+import { Shield, Zap, ArrowRight, BookOpen } from 'lucide-react';
 
 const Home = () => {
   return (
@@ -39,22 +39,22 @@ const Home = () => {
       {/* Features Grid */}
       <section className="py-20 max-w-6xl mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-8">
         <div className="p-8 bg-white rounded-2xl border border-slate-100 shadow-sm">
-          <div className="w-12 h-12 bg-purple-50 text-purple-600 rounded-lg flex items-center justify-center mb-6">
-            <Brain size={24} />
-          </div>
-          <h3 className="text-xl font-bold mb-3">Conceptual Maps</h3>
-          <p className="text-slate-500 leading-relaxed">
-            Gemini identifies core concepts and visualizes them in an interactive graph, making complex topics easy to grasp.
-          </p>
-        </div>
-
-        <div className="p-8 bg-white rounded-2xl border border-slate-100 shadow-sm">
           <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center mb-6">
             <Zap size={24} />
           </div>
           <h3 className="text-xl font-bold mb-3">Instant Summaries</h3>
           <p className="text-slate-500 leading-relaxed">
             Get the gist of 30-page documents in seconds. Our AI extracts key points and saves you hours of reading.
+          </p>
+        </div>
+
+        <div className="p-8 bg-white rounded-2xl border border-slate-100 shadow-sm">
+          <div className="w-12 h-12 bg-orange-50 text-orange-600 rounded-lg flex items-center justify-center mb-6">
+            <BookOpen size={24} />
+          </div>
+          <h3 className="text-xl font-bold mb-3">Smart Quizzes</h3>
+          <p className="text-slate-500 leading-relaxed">
+            Test your knowledge with AI-generated quizzes tailored to your documents, enhancing retention and understanding.
           </p>
         </div>
 
