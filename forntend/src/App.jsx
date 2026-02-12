@@ -1,22 +1,30 @@
+import React, { Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Navbar from './components/common/Navbar';
 import Footer from './components/common/Footer';
 import ProtectedRoute from './components/common/ProtectedRoute';
 
-// Page Imports
-import Home from './pages/Home';
-import Dashboard from './pages/Dashboard';
-import Todo from './pages/Todo';
-import Upload from './pages/Upload';
-import Document from './pages/Document';
-import Settings from './pages/Settings';
-import Profile from './pages/Profile';
-import Quiz from './pages/Quiz';
+// Lazy load page components for better performance
+const Home = lazy(() => import('./pages/Home'));
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Todo = lazy(() => import('./pages/Todo'));
+const Upload = lazy(() => import('./pages/Upload'));
+const Document = lazy(() => import('./pages/Document'));
+const Settings = lazy(() => import('./pages/Settings'));
+const Profile = lazy(() => import('./pages/Profile'));
+const Quiz = lazy(() => import('./pages/Quiz'));
 
-// Auth Imports
-import Login from './components/auth/Login';
-import Register from './components/auth/Register';
-import ForgotPassword from './components/auth/ForgotPassword';
+// Lazy load auth components
+const Login = lazy(() => import('./components/auth/Login'));
+const Register = lazy(() => import('./components/auth/Register'));
+const ForgotPassword = lazy(() => import('./components/auth/ForgotPassword'));
+
+// Loading component
+const LoadingFallback = () => (
+  <div className="flex items-center justify-center min-h-screen">
+    <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+  </div>
+);
 
 function App() {
   return (
