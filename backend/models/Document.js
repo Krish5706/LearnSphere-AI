@@ -56,6 +56,86 @@ const documentSchema = new mongoose.Schema({
         link: { type: String } // Link to existing website pages
     }],
 
+    // Enhanced roadmap with topics
+    enhancedRoadmap: {
+        completed: { type: Boolean, default: false },
+        mainTopics: [{
+            id: { type: String },
+            name: { type: String },
+            description: { type: String },
+            importance: { type: String, enum: ['critical', 'important', 'optional'] },
+            difficulty: { type: String, enum: ['easy', 'medium', 'hard'] }
+        }],
+        
+        learningPath: [{
+            phaseId: { type: String },
+            phaseName: { type: String },
+            phaseDescription: { type: String },
+            phaseObjective: { type: String },
+            estimatedDuration: { type: String },
+            
+            modules: [{
+                moduleId: { type: String },
+                moduleTitle: { type: String },
+                moduleDescription: { type: String },
+                topicsCovered: [{ type: String }],
+                estimatedTime: { type: String },
+                difficulty: { type: String, enum: ['easy', 'medium', 'hard'] },
+                
+                lessons: [{
+                    lessonId: { type: String },
+                    lessonTitle: { type: String },
+                    lessonContent: { type: String },
+                    orderInModule: { type: Number },
+                    duration: { type: String },
+                    keyPoints: [{ type: String }],
+                    prerequisites: [{ type: String }],
+                    resources: [{ type: String }],
+                    practiceActivities: [{
+                        activity: { type: String },
+                        description: { type: String }
+                    }]
+                }],
+                
+                assessment: {
+                    type: { type: String, enum: ['quiz', 'project', 'exercise'] },
+                    description: { type: String },
+                    questions: [{ type: String }]
+                }
+            }],
+            
+            completionCriteria: { type: String },
+            summary: { type: String }
+        }],
+        
+        prerequisites: [{
+            topic: { type: String },
+            reason: { type: String }
+        }],
+        
+        learningOutcomes: [{
+            outcome: { type: String },
+            description: { type: String }
+        }],
+        
+        studyTimeline: {
+            totalEstimatedHours: { type: Number },
+            recommendedPacePerWeek: { type: String },
+            phaseBreakdown: [{
+                phase: { type: String },
+                hours: { type: Number },
+                percentage: { type: Number }
+            }]
+        },
+        
+        progressTracking: {
+            currentPhase: { type: Number, default: 0 },
+            completedModules: [{ type: String }],
+            completedLessons: [{ type: String }],
+            overallProgress: { type: Number, default: 0 }
+        }
+    },
+
     // Learner level for roadmap
     learnerLevel: {
         type: String,

@@ -4,6 +4,7 @@ const User = require("../models/User");
 const fs = require("fs");
 const path = require("path");
 const GeminiProcessor = require("../services/geminiProcessor");
+const RoadmapService = require("../services/roadmapService");
 const pdfParseService = require("../services/pdfParseService");
 const pdfExporter = require("../services/pdfExporter");
 
@@ -156,9 +157,19 @@ exports.processPDF = async (req, res) => {
             }
 
             if (processingType === 'roadmap') {
-                console.log('🗺️ Generating learning roadmap...');
+                console.log('🗺️ Generating enhanced learning roadmap...');
                 const learnerLevel = req.body.learnerLevel || 'beginner';
-                results.roadmap = await processor.generateRoadmap(pdfText, 5, learnerLevel);
+                
+                try {
+                    // Use the new RoadmapService for enhanced roadmap generation
+                    const roadmapService = new RoadmapService(process.env.GEMINI_API_KEY);
+                    results.enhancedRoadmap = await roadmapService.generateEnhancedRoadmap(pdfText, learnerLevel);
+                    console.log('✅ Enhanced roadmap generated successfully');
+                } catch (roadmapError) {
+                    console.error('❌ Roadmap generation error:', roadmapError.message);
+                    throw roadmapError;
+                }
+                
                 results.learnerLevel = learnerLevel;
             }
 
@@ -173,6 +184,8 @@ exports.processPDF = async (req, res) => {
             doc.keyPoints = results.keyPoints || doc.keyPoints;
             doc.quizzes = results.quizzes || doc.quizzes;
             doc.roadmap = results.roadmap || doc.roadmap;
+            doc.enhancedRoadmap = results.enhancedRoadmap || doc.enhancedRoadmap;
+            doc.learnerLevel = results.learnerLevel || doc.learnerLevel || 'beginner';
             doc.processingStatus = 'completed';
             doc.processingType = processingType;
             doc.processingDetails = {
@@ -525,5 +538,187 @@ exports.uploadAndAnalyze = async (req, res) => {
         }
         
         res.status(statusCode).json({ message: errorMessage });
+    }
+};
+// ============================================
+// UPDATE ROADMAP PROGRESS
+// ============================================
+exports.updateRoadmapProgress = async (req, res) => {
+    try {
+        const { documentId } = req.params;
+        const { lessonId, phaseId, moduleId } = req.body;
+
+        const doc = await Document.findOne({ _id: documentId, user: req.user._id });
+        if (!doc || !doc.enhancedRoadmap) {
+            return res.status(404).json({ message: "Enhanced roadmap not found" });
+        }
+
+        // Mark lesson as completed
+        if (lessonId && !doc.enhancedRoadmap.progressTracking.completedLessons.includes(lessonId)) {
+            doc.enhancedRoadmap.progressTracking.completedLessons.push(lessonId);
+        }
+
+        // Calculate total lessons
+        const totalLessons = doc.enhancedRoadmap.learningPath.reduce((total, phase) => 
+            total + (phase.modules?.reduce((sum, mod) => sum + (mod.lessons?.length || 0), 0) || 0), 0
+        );
+
+        // Update overall progress
+        doc.enhancedRoadmap.progressTracking.overallProgress = Math.round(
+            (doc.enhancedRoadmap.progressTracking.completedLessons.length / totalLessons) * 100
+        );
+
+        // Update current phase
+        if (phaseId) {
+            const phaseIndex = doc.enhancedRoadmap.learningPath.findIndex(p => p.phaseId === phaseId);
+            if (phaseIndex >= 0) {
+                doc.enhancedRoadmap.progressTracking.currentPhase = phaseIndex;
+            }
+        }
+
+        // Mark module as completed
+        if (moduleId && !doc.enhancedRoadmap.progressTracking.completedModules.includes(moduleId)) {
+            doc.enhancedRoadmap.progressTracking.completedModules.push(moduleId);
+        }
+
+        await doc.save();
+
+        res.status(200).json({
+            message: "Progress updated successfully",
+            progress: doc.enhancedRoadmap.progressTracking
+        });
+    } catch (error) {
+        console.error("Update Progress Error:", error);
+        res.status(500).json({ message: "Failed to update progress" });
+    }
+};
+
+// ============================================
+// GET ROADMAP TOPIC DEPENDENCIES
+// ============================================
+exports.getRoadmapTopics = async (req, res) => {
+    try {
+        const { documentId } = req.params;
+
+        const doc = await Document.findOne({ _id: documentId, user: req.user._id });
+        if (!doc || !doc.enhancedRoadmap) {
+            return res.status(404).json({ message: "Enhanced roadmap not found" });
+        }
+
+        res.status(200).json({
+            mainTopics: doc.enhancedRoadmap.mainTopics,
+            learningOutcomes: doc.enhancedRoadmap.learningOutcomes,
+            prerequisites: doc.enhancedRoadmap.prerequisites,
+            progressTracking: doc.enhancedRoadmap.progressTracking
+        });
+    } catch (error) {
+        console.error("Get Topics Error:", error);
+        res.status(500).json({ message: "Failed to fetch topics" });
+    }
+};
+
+// ============================================
+// EXPORT ROADMAP AS MARKDOWN/PDF
+// ============================================
+exports.exportRoadmap = async (req, res) => {
+    try {
+        const { documentId } = req.params;
+        const { format } = req.query; // 'markdown' or 'pdf'
+
+        const doc = await Document.findOne({ _id: documentId, user: req.user._id });
+        if (!doc || !doc.enhancedRoadmap) {
+            return res.status(404).json({ message: "Enhanced roadmap not found" });
+        }
+
+        // Initialize RoadmapService
+        const RoadmapService = require("../services/roadmapService");
+        const roadmapService = new RoadmapService(process.env.GEMINI_API_KEY);
+
+        // Generate markdown summary
+        const summary = roadmapService.generateRoadmapSummary(doc.enhancedRoadmap);
+
+        if (format === 'markdown') {
+            res.setHeader('Content-Type', 'text/markdown');
+            res.setHeader('Content-Disposition', `attachment; filename="roadmap-${doc.fileName.replace(/\.pdf$/, '')}.md"`);
+            res.send(summary);
+        } else {
+            // For PDF, we would need additional library
+            res.status(200).json({
+                message: "Roadmap export",
+                content: summary,
+                fileName: `roadmap-${doc.fileName.replace(/\.pdf$/, '')}`,
+                format: 'markdown'
+            });
+        }
+    } catch (error) {
+        console.error("Export Roadmap Error:", error);
+        res.status(500).json({ message: "Failed to export roadmap" });
+    }
+};
+
+// ============================================
+// DIAGNOSTIC ROADMAP TEST (Debug)
+// ============================================
+exports.testRoadmapGeneration = async (req, res) => {
+    try {
+        const { content, learnerLevel } = req.body;
+
+        if (!content || content.trim().length === 0) {
+            return res.status(400).json({ message: 'Content is required' });
+        }
+
+        if (!process.env.GEMINI_API_KEY) {
+            return res.status(500).json({ message: 'GEMINI_API_KEY not configured' });
+        }
+
+        console.log('\n🔬 DIAGNOSTIC ROADMAP TEST STARTED');
+        console.log(`   Content length: ${content.length}`);
+        console.log(`   Learner level: ${learnerLevel || 'beginner'}`);
+
+        const startTime = Date.now();
+        const RoadmapService = require("../services/roadmapService");
+        const roadmapService = new RoadmapService(process.env.GEMINI_API_KEY);
+        
+        const testRoadmap = await roadmapService.generateEnhancedRoadmap(
+            content,
+            learnerLevel || 'beginner'
+        );
+
+        const elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
+
+        const diagnosticResult = {
+            success: true,
+            generationTime: `${elapsed}s`,
+            stats: {
+                topicsCount: testRoadmap.mainTopics?.length || 0,
+                phasesCount: testRoadmap.learningPath?.length || 0,
+                totalModules: testRoadmap.learningPath?.reduce((sum, p) => sum + (p.modules?.length || 0), 0) || 0,
+                totalLessons: testRoadmap.learningPath?.reduce((sum, p) => 
+                    sum + (p.modules?.reduce((m, mod) => m + (mod.lessons?.length || 0), 0) || 0), 0
+                ) || 0,
+                totalEstimatedHours: testRoadmap.studyTimeline?.totalEstimatedHours || 0
+            },
+            mainTopics: testRoadmap.mainTopics || [],
+            phaseNames: testRoadmap.learningPath?.map(p => p.phaseName) || [],
+            samplePhase: testRoadmap.learningPath?.[0] ? {
+                name: testRoadmap.learningPath[0].phaseName,
+                modulesCount: testRoadmap.learningPath[0].modules?.length || 0,
+                firstModule: testRoadmap.learningPath[0].modules?.[0] ? {
+                    name: testRoadmap.learningPath[0].modules[0].moduleTitle,
+                    lessonsCount: testRoadmap.learningPath[0].modules[0].lessons?.length || 0
+                } : null
+            } : null
+        };
+
+        console.log('✅ Diagnostic test successful');
+        res.status(200).json(diagnosticResult);
+
+    } catch (error) {
+        console.error('❌ Diagnostic test error:', error.message);
+        res.status(500).json({
+            success: false,
+            error: error.message,
+            details: error.message
+        });
     }
 };

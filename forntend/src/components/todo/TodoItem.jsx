@@ -48,7 +48,7 @@ const TodoItem = ({ todo, onEdit, onDelete, onStatusChange }) => {
         today.setHours(0, 0, 0, 0);
         const dueDate = new Date(todo.dueDate);
         dueDate.setHours(0, 0, 0, 0);
-        return todo.status === 'pending' && dueDate < today;
+        return (todo.status === 'pending' || todo.status === 'missed') && dueDate < today;
     };
 
     const handleMarkComplete = async () => {
@@ -76,6 +76,8 @@ const TodoItem = ({ todo, onEdit, onDelete, onStatusChange }) => {
             className={`flex items-start gap-3 p-4 rounded-lg border transition-all ${
                 todo.status === 'completed'
                     ? 'bg-slate-50 border-slate-200'
+                    : todo.status === 'missed'
+                    ? 'bg-orange-50 border-orange-300'
                     : isOverdue()
                     ? 'bg-red-50 border-red-200'
                     : 'bg-white border-slate-200 hover:border-slate-300'
@@ -148,6 +150,11 @@ const TodoItem = ({ todo, onEdit, onDelete, onStatusChange }) => {
                     {todo.status === 'completed' && (
                         <span className="px-2 py-1 rounded-full text-green-700 bg-green-50 font-bold">
                             Completed
+                        </span>
+                    )}
+                    {todo.status === 'missed' && (
+                        <span className="px-2 py-1 rounded-full text-orange-700 bg-orange-100 font-bold">
+                            Missed
                         </span>
                     )}
                 </div>
