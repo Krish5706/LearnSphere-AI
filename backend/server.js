@@ -18,6 +18,7 @@ const authRoutes = require('./routes/authRoutes');
 const documentRoutes = require('./routes/documentRoutes');
 const userRoutes = require('./routes/userRoutes');
 const todoRoutes = require('./routes/todoRoutes');
+const quizRoutes = require('./routes/quizRoutes');
 const { router: documentNoteRouter, noteRouter: individualNoteRouter } = require('./routes/noteRoutes');
 
 // Import Middleware
@@ -48,6 +49,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/documents', documentRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/todos', todoRoutes);
+app.use('/api/quizzes', quizRoutes);
 app.use('/api/notes', individualNoteRouter);
 
 // --------------------

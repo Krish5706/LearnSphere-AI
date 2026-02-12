@@ -271,10 +271,15 @@ Only JSON, no text. ${phaseCount} phases needed.`;
             }
             console.log(`✅ Built learning path`);
             
+            // Step 4: Add quiz metadata
+            console.log(`📝 Step 4: Adding quiz metadata...`);
+            const pathWithQuizzes = this.addQuizMetadata(learningPath, mainTopics);
+            console.log(`✅ Quiz metadata added`);
+            
             // Study timeline
             const totalHours = learnerLevel === 'beginner' ? 24 : learnerLevel === 'intermediate' ? 36 : 48;
-            const hoursPerPhase = Math.round(totalHours / learningPath.length);
-            const phaseBreakdown = learningPath.map((phase) => ({
+            const hoursPerPhase = Math.round(totalHours / pathWithQuizzes.length);
+            const phaseBreakdown = pathWithQuizzes.map((phase) => ({
                 phase: `${phase.phaseName}`,
                 hours: hoursPerPhase,
                 percentage: Math.round((hoursPerPhase / totalHours) * 100)
@@ -287,12 +292,13 @@ Only JSON, no text. ${phaseCount} phases needed.`;
                 { outcome: 'Analyze and evaluate', description: 'Think critically' }
             ];
             
-            console.log(`📊 Step 4: Finalizing roadmap...`);
+            console.log(`📊 Step 5: Finalizing roadmap...`);
             
             const enhancedRoadmap = {
                 completed: false,
                 mainTopics: mainTopics,
-                learningPath: learningPath,
+                learningPath: pathWithQuizzes,
+                finalQuiz: this.createFinalQuizMetadata(pathWithQuizzes, mainTopics),
                 prerequisites: [],
                 learningOutcomes: learningOutcomes,
                 studyTimeline: {
@@ -304,20 +310,31 @@ Only JSON, no text. ${phaseCount} phases needed.`;
                     currentPhase: 0,
                     completedModules: [],
                     completedLessons: [],
-                    overallProgress: 0
+                    completedQuizzes: [],
+                    overallProgress: 0,
+                    overallQuizScore: 0
+                },
+                quizStatistics: {
+                    totalModuleQuizzes: pathWithQuizzes.reduce((sum, p) => sum + (p.quizzes?.moduleQuizzes?.length || 0), 0),
+                    totalPhaseQuizzes: pathWithQuizzes.length,
+                    hasFinalQuiz: true,
+                    totalQuestionsEstimate: (pathWithQuizzes.reduce((sum, p) => sum + (p.quizzes?.moduleQuizzes?.length || 0), 0) * 12) + (pathWithQuizzes.length * 30) + 30
                 }
             };
 
-            const totalModules = learningPath.reduce((sum, p) => sum + (p.modules?.length || 0), 0);
-            const totalLessons = learningPath.reduce((sum, p) => {
+            const totalModules = pathWithQuizzes.reduce((sum, p) => sum + (p.modules?.length || 0), 0);
+            const totalLessons = pathWithQuizzes.reduce((sum, p) => {
                 return sum + (p.modules?.reduce((mSum, m) => mSum + (m.lessons?.length || 0), 0) || 0);
             }, 0);
 
             console.log(`✅ Roadmap generation complete!`);
             console.log(`   Topics: ${mainTopics.length}`);
-            console.log(`   Phases: ${learningPath.length}`);
+            console.log(`   Phases: ${pathWithQuizzes.length}`);
             console.log(`   Modules: ${totalModules}`);
             console.log(`   Lessons: ${totalLessons}`);
+            console.log(`   Module Quizzes: ${enhancedRoadmap.quizStatistics.totalModuleQuizzes}`);
+            console.log(`   Phase Quizzes: ${enhancedRoadmap.quizStatistics.totalPhaseQuizzes}`);
+            console.log(`   Estimated Total Questions: ${enhancedRoadmap.quizStatistics.totalQuestionsEstimate}`);
             console.log('========== ROADMAP GENERATION COMPLETE ==========\n');
 
             return enhancedRoadmap;
@@ -336,10 +353,13 @@ Only JSON, no text. ${phaseCount} phases needed.`;
             phase.modules = this.getDefaultModules(phase.phaseName, []);
         });
 
+        const pathWithQuizzes = this.addQuizMetadata(phases, this.getDefaultTopics());
+
         return {
             completed: false,
             mainTopics: this.getDefaultTopics(),
-            learningPath: phases,
+            learningPath: pathWithQuizzes,
+            finalQuiz: this.createFinalQuizMetadata(pathWithQuizzes, this.getDefaultTopics()),
             prerequisites: [],
             learningOutcomes: [
                 { outcome: 'Understand concepts', description: 'Learn the material' },
@@ -358,8 +378,62 @@ Only JSON, no text. ${phaseCount} phases needed.`;
                 currentPhase: 0,
                 completedModules: [],
                 completedLessons: [],
-                overallProgress: 0
+                completedQuizzes: [],
+                overallProgress: 0,
+                overallQuizScore: 0
+            },
+            quizStatistics: {
+                totalModuleQuizzes: pathWithQuizzes.reduce((sum, p) => sum + (p.quizzes?.moduleQuizzes?.length || 0), 0),
+                totalPhaseQuizzes: pathWithQuizzes.length,
+                hasFinalQuiz: true,
+                totalQuestionsEstimate: 150
             }
+        };
+    }
+
+    /**
+     * Add quiz metadata to roadmap
+     */
+    addQuizMetadata(learningPath, mainTopics) {
+        return learningPath.map((phase, phaseIdx) => ({
+            ...phase,
+            quizzes: {
+                moduleQuizzes: phase.modules?.map((module, modIdx) => ({
+                    moduleId: module.moduleId,
+                    moduleName: module.moduleTitle,
+                    quizType: 'module-quiz',
+                    estimatedQuestionCount: 12,
+                    topicsCovered: module.topicsCovered || [],
+                    description: `Assessment for ${module.moduleTitle}`,
+                    status: 'not-created'
+                })) || [],
+                phaseQuiz: {
+                    phaseId: phase.phaseId,
+                    phaseName: phase.phaseName,
+                    quizType: 'phase-quiz',
+                    estimatedQuestionCount: 30,
+                    topicsCovered: [
+                        ...new Set(phase.modules?.flatMap(m => m.topicsCovered || []) || [])
+                    ],
+                    description: `Comprehensive assessment for ${phase.phaseName}. Tests all topics covered in this phase.`,
+                    status: 'not-created'
+                }
+            }
+        }));
+    }
+
+    /**
+     * Create final quiz metadata
+     */
+    createFinalQuizMetadata(phases, mainTopics) {
+        return {
+            quizType: 'final-quiz',
+            quizTitle: 'Final Comprehensive Assessment',
+            estimatedQuestionCount: 30,
+            topicsCovered: mainTopics.map(t => t.name),
+            description: 'Final comprehensive assessment covering all topics from all phases. Tests synthesis and mastery of complete learning roadmap.',
+            status: 'not-created',
+            passingScore: 70
         };
     }
 
