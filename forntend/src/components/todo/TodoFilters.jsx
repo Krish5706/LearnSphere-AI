@@ -60,7 +60,7 @@ const TodoFilters = ({ filters, onFilterChange }) => {
                 <div>
                     <label className="block text-sm font-bold text-slate-700 mb-2">Status</label>
                     <div className="flex gap-2">
-                        {['pending', 'completed'].map((status) => (
+                        {['pending', 'completed', 'missed'].map((status) => (
                             <button
                                 key={status}
                                 onClick={() => handleStatusChange(status)}
@@ -70,7 +70,7 @@ const TodoFilters = ({ filters, onFilterChange }) => {
                                         : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                                 }`}
                             >
-                                {status === 'pending' ? 'Pending' : 'Completed'}
+                                {status === 'pending' ? 'Pending' : status === 'completed' ? 'Completed' : 'Missed'}
                             </button>
                         ))}
                     </div>

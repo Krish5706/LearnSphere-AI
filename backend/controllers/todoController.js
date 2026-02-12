@@ -90,6 +90,18 @@ const getTodos = asyncHandler(async (req, res) => {
     const Document = require('../models/Document');
     const Note = require('../models/Note');
 
+    // Auto-mark overdue pending tasks as missed
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    await Todo.updateMany(
+        {
+            user: req.user._id,
+            status: 'pending',
+            dueDate: { $lt: now }
+        },
+        { status: 'missed', updatedAt: Date.now() }
+    );
+
     // Build filter object
     const filter = { user: req.user._id };
 
@@ -302,6 +314,18 @@ const deleteTodo = asyncHandler(async (req, res) => {
 const getTodoStats = asyncHandler(async (req, res) => {
     const userId = req.user._id;
 
+    // Auto-mark overdue pending tasks as missed
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    await Todo.updateMany(
+        {
+            user: userId,
+            status: 'pending',
+            dueDate: { $lt: now }
+        },
+        { status: 'missed', updatedAt: Date.now() }
+    );
+
     // Get today's date range
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -309,11 +333,10 @@ const getTodoStats = asyncHandler(async (req, res) => {
     tomorrow.setDate(tomorrow.getDate() + 1);
 
     // Get counts
-    const [totalTodos, completedTodos, pendingTodos, todayTodos] = await Promise.all([
+    const [totalTodos, completedTodos, pendingTodos, missedTodos, todayTodos] = await Promise.all([
         Todo.countDocuments({ user: userId }),
         Todo.countDocuments({ user: userId, status: 'completed' }),
-        Todo.countDocuments({ user: userId, status: 'pending' }),
-        Todo.countDocuments({
+        Todo.countDocuments({ user: userId, status: 'pending' }),        Todo.countDocuments({ user: userId, status: 'missed' }),        Todo.countDocuments({
             user: userId,
             dueDate: { $gte: today, $lt: tomorrow }
         })
@@ -327,6 +350,7 @@ const getTodoStats = asyncHandler(async (req, res) => {
             total: totalTodos,
             completed: completedTodos,
             pending: pendingTodos,
+            missed: missedTodos,
             dueToday: todayTodos,
             completionRate
         }

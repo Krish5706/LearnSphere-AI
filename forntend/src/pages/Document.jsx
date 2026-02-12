@@ -9,6 +9,7 @@ import QuizListNew from '../components/quiz/QuizListNew';
 import QuizResultAnalysis from '../components/quiz/QuizResultAnalysis';
 import Notes from '../components/Notes';
 import Roadmap from '../components/Roadmap';
+import EnhancedRoadmap from '../components/EnhancedRoadmap';
 import { FileText, BrainCircuit, GraduationCap, Loader2, ChevronLeft, Lock, Sparkles, BarChart3, BookText, Map } from 'lucide-react';
 
 const Document = () => {
@@ -111,12 +112,28 @@ const Document = () => {
             {/* Content Area */}
             <div className="p-8 max-w-7xl mx-auto">
                 {activeTab === 'roadmap' && (
-                    <Roadmap
-                        roadmap={doc.roadmap}
-                        fileName={doc.fileName}
-                        learnerLevel={doc.learnerLevel}
-                        onNavigateToTab={setActiveTab}
-                    />
+                    <>
+                        {doc.enhancedRoadmap ? (
+                            <EnhancedRoadmap
+                                enhancedRoadmap={doc.enhancedRoadmap}
+                                fileName={doc.fileName}
+                                learnerLevel={doc.learnerLevel}
+                                documentId={id}
+                                onNavigateToTab={setActiveTab}
+                                onProgressUpdate={(progress) => {
+                                    console.log('Progress updated:', progress);
+                                    // Optional: Update local state if needed
+                                }}
+                            />
+                        ) : (
+                            <Roadmap
+                                roadmap={doc.roadmap}
+                                fileName={doc.fileName}
+                                learnerLevel={doc.learnerLevel}
+                                onNavigateToTab={setActiveTab}
+                            />
+                        )}
+                    </>
                 )}
 
                 {activeTab === 'summary' && (

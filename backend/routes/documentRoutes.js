@@ -32,6 +32,18 @@ router.post('/submit-quiz', protect, docController.submitQuizAnswers);
 // Generate report PDF (Step 4: Export results as PDF)
 router.post('/report/generate', protect, docController.generateReportPDF);
 
+// Update roadmap progress
+router.put('/:documentId/roadmap/progress', protect, docController.updateRoadmapProgress);
+
+// Get roadmap topics and dependencies
+router.get('/:documentId/roadmap/topics', protect, docController.getRoadmapTopics);
+
+// Export roadmap
+router.get('/:documentId/roadmap/export', protect, docController.exportRoadmap);
+
+// Test roadmap generation (diagnostic)
+router.post('/test-roadmap', protect, docController.testRoadmapGeneration);
+
 // BACKWARD COMPATIBILITY - Old upload & analyze endpoint
 router.post('/upload-and-analyze', protect, upload.single('pdf'), docController.uploadAndAnalyze);
 

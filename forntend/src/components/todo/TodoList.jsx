@@ -90,7 +90,7 @@ const TodoList = () => {
 
             {/* Stats Cards */}
             {stats && (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                     <div className="bg-white p-4 rounded-xl border border-slate-200">
                         <div className="flex items-center gap-2 text-slate-600 mb-2">
                             <BookOpen size={16} />
@@ -111,6 +111,13 @@ const TodoList = () => {
                             <span className="text-sm font-bold">Pending</span>
                         </div>
                         <p className="text-2xl font-black text-orange-600">{stats.pending}</p>
+                    </div>
+                    <div className="bg-white p-4 rounded-xl border border-slate-200">
+                        <div className="flex items-center gap-2 text-red-600 mb-2">
+                            <AlertTriangle size={16} />
+                            <span className="text-sm font-bold">Missed</span>
+                        </div>
+                        <p className="text-2xl font-black text-red-600">{stats.missed || 0}</p>
                     </div>
                     <div className="bg-white p-4 rounded-xl border border-slate-200">
                         <div className="flex items-center gap-2 text-blue-600 mb-2">
