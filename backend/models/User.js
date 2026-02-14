@@ -33,18 +33,12 @@ const userSchema = new mongoose.Schema({
 });
 
 // Encrypt password before saving
-userSchema.pre('save', async function(next) {
+userSchema.pre('save', async function() {
     // Only hash password if it's been modified (or is new)
     if (!this.isModified('password')) {
-        if (next && typeof next === 'function') {
-            return next();
-        }
         return;
     }
     this.password = await bcrypt.hash(this.password, 12);
-    if (next && typeof next === 'function') {
-        next();
-    }
 });
 
 // Method to verify password

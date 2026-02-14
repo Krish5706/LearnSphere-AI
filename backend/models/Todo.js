@@ -81,11 +81,8 @@ todoSchema.index({ user: 1, dueDate: 1 });
 todoSchema.index({ user: 1, priority: 1 });
 
 // Update the updatedAt field before saving
-todoSchema.pre('save', function(next) {
+todoSchema.pre('save', function() {
     this.updatedAt = Date.now();
-    if (next && typeof next === 'function') {
-        next();
-    }
 });
 
 module.exports = mongoose.model('Todo', todoSchema);

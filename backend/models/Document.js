@@ -59,6 +59,15 @@ const documentSchema = new mongoose.Schema({
     // Enhanced roadmap with topics
     enhancedRoadmap: {
         completed: { type: Boolean, default: false },
+        roadmapId: { type: String },
+        title: { type: String },
+        description: { type: String },
+        mainTopic: { type: String },
+        subTopics: [{ type: String }],
+        targetLevel: { type: String },
+        learnerLevel: { type: String },
+        generatedAt: { type: String },
+        
         mainTopics: [{
             id: { type: String },
             name: { type: String },
@@ -67,12 +76,32 @@ const documentSchema = new mongoose.Schema({
             difficulty: { type: String, enum: ['easy', 'medium', 'hard'] }
         }],
         
-        learningPath: [{
+        // Statistics object
+        statistics: {
+            totalPhases: { type: Number },
+            totalModules: { type: Number },
+            totalLessons: { type: Number },
+            totalAssessmentQuestions: { type: Number },
+            estimatedTotalHours: { type: Number },
+            contentSourced: { type: String }
+        },
+        
+        // Support both 'phases' and 'learningPath' for flexibility
+        phases: [{
             phaseId: { type: String },
             phaseName: { type: String },
             phaseDescription: { type: String },
             phaseObjective: { type: String },
             estimatedDuration: { type: String },
+            phaseTopics: [{
+                id: { type: String },
+                name: { type: String },
+                description: { type: String },
+                keyTerms: [{ type: String }],
+                importance: { type: String },
+                documentReference: { type: String },
+                phase: { type: Number }
+            }],
             
             modules: [{
                 moduleId: { type: String },
@@ -80,28 +109,92 @@ const documentSchema = new mongoose.Schema({
                 moduleDescription: { type: String },
                 topicsCovered: [{ type: String }],
                 estimatedTime: { type: String },
-                difficulty: { type: String, enum: ['easy', 'medium', 'hard'] },
+                estimatedDuration: { type: String },
+                difficulty: { type: String },
                 
                 lessons: [{
                     lessonId: { type: String },
                     lessonTitle: { type: String },
                     lessonContent: { type: String },
+                    introduction: { type: String },
+                    learningObjectives: [{ type: String }],
                     orderInModule: { type: Number },
                     duration: { type: String },
                     keyPoints: [{ type: String }],
+                    examples: [{ type: mongoose.Schema.Types.Mixed }],
                     prerequisites: [{ type: String }],
                     resources: [{ type: String }],
-                    practiceActivities: [{
-                        activity: { type: String },
-                        description: { type: String }
-                    }]
+                    practiceActivities: [{ type: mongoose.Schema.Types.Mixed }],
+                    commonMisconceptions: [{ type: String }],
+                    summary: { type: String },
+                    nextSteps: { type: String }
                 }],
                 
                 assessment: {
-                    type: { type: String, enum: ['quiz', 'project', 'exercise'] },
+                    type: { type: String },
                     description: { type: String },
-                    questions: [{ type: String }]
-                }
+                    questions: [{ type: mongoose.Schema.Types.Mixed }],
+                    passingScore: { type: Number }
+                },
+                
+                learningOutcomes: [{ type: mongoose.Schema.Types.Mixed }]
+            }],
+            
+            completionCriteria: { type: String },
+            summary: { type: String }
+        }],
+        
+        learningPath: [{
+            phaseId: { type: String },
+            phaseName: { type: String },
+            phaseDescription: { type: String },
+            phaseObjective: { type: String },
+            estimatedDuration: { type: String },
+            phaseTopics: [{
+                id: { type: String },
+                name: { type: String },
+                description: { type: String },
+                keyTerms: [{ type: String }],
+                importance: { type: String },
+                documentReference: { type: String },
+                phase: { type: Number }
+            }],
+            
+            modules: [{
+                moduleId: { type: String },
+                moduleTitle: { type: String },
+                moduleDescription: { type: String },
+                topicsCovered: [{ type: String }],
+                estimatedTime: { type: String },
+                estimatedDuration: { type: String },
+                difficulty: { type: String },
+                
+                lessons: [{
+                    lessonId: { type: String },
+                    lessonTitle: { type: String },
+                    lessonContent: { type: String },
+                    introduction: { type: String },
+                    learningObjectives: [{ type: String }],
+                    orderInModule: { type: Number },
+                    duration: { type: String },
+                    keyPoints: [{ type: String }],
+                    examples: [{ type: mongoose.Schema.Types.Mixed }],
+                    prerequisites: [{ type: String }],
+                    resources: [{ type: String }],
+                    practiceActivities: [{ type: mongoose.Schema.Types.Mixed }],
+                    commonMisconceptions: [{ type: String }],
+                    summary: { type: String },
+                    nextSteps: { type: String }
+                }],
+                
+                assessment: {
+                    type: { type: String },
+                    description: { type: String },
+                    questions: [{ type: mongoose.Schema.Types.Mixed }],
+                    passingScore: { type: Number }
+                },
+                
+                learningOutcomes: [{ type: mongoose.Schema.Types.Mixed }]
             }],
             
             completionCriteria: { type: String },

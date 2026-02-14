@@ -6,7 +6,6 @@ import ShortSummary from '../components/summary/ShortSummary';
 import MediumSummary from '../components/summary/MediumSummary';
 import DetailedSummary from '../components/summary/DetailedSummary';
 import QuizListNew from '../components/quiz/QuizListNew';
-import QuizResultAnalysis from '../components/quiz/QuizResultAnalysis';
 import Notes from '../components/Notes';
 import Roadmap from '../components/Roadmap';
 import EnhancedRoadmap from '../components/EnhancedRoadmap';

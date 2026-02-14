@@ -10,13 +10,13 @@ import api from './api';
 const authService = {
   // Register a new user
   register: async (userData) => {
-    const response = await api.post('/api/auth/register', userData);
+    const response = await api.post('/auth/register', userData);
     return response.data;
   },
 
   // Login user and store token
   login: async (credentials) => {
-    const response = await api.post('/api/auth/login', credentials);
+    const response = await api.post('/auth/login', credentials);
     if (response.data.token) {
       localStorage.setItem('token', response.data.token);
       // Optional: Store non-sensitive user data
@@ -34,7 +34,7 @@ const authService = {
   // Get current user profile (used to verify token validity)
   getCurrentUser: async () => {
     try {
-      const response = await api.get('/api/auth/me');
+      const response = await api.get('/auth/me');
       return response.data;
     } catch (error) {
       // If token is invalid or expired, clear storage

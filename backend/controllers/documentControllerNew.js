@@ -1,10 +1,13 @@
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const Document = require("../models/Document");
 const User = require("../models/User");
+const Quiz = require("../models/Quiz");
 const fs = require("fs");
 const path = require("path");
 const GeminiProcessor = require("../services/geminiProcessor");
 const RoadmapService = require("../services/roadmapService");
+const ImprovedRoadmapService = require("../services/improvedRoadmapService"); // NEW: Enhanced roadmap with detailed lessons
+const QuizService = require("../services/quizService");
 const pdfParseService = require("../services/pdfParseService");
 const pdfExporter = require("../services/pdfExporter");
 
@@ -157,14 +160,73 @@ exports.processPDF = async (req, res) => {
             }
 
             if (processingType === 'roadmap') {
-                console.log('🗺️ Generating enhanced learning roadmap...');
+                console.log('🗺️ Generating enhanced learning roadmap with detailed AI-generated content...');
                 const learnerLevel = req.body.learnerLevel || 'beginner';
                 
                 try {
-                    // Use the new RoadmapService for enhanced roadmap generation
-                    const roadmapService = new RoadmapService(process.env.GEMINI_API_KEY);
-                    results.enhancedRoadmap = await roadmapService.generateEnhancedRoadmap(pdfText, learnerLevel);
-                    console.log('✅ Enhanced roadmap generated successfully');
+                    // Use the NEW ImprovedRoadmapService for detailed, PDF-based content generation
+                    const improvedRoadmapService = new ImprovedRoadmapService(process.env.GEMINI_API_KEY);
+                    results.enhancedRoadmap = await improvedRoadmapService.generateCompleteRoadmapImproved(
+                        pdfText, 
+                        learnerLevel
+                    );
+                    console.log('✅ Enhanced roadmap with detailed lessons generated successfully');
+                    
+                    // Pre-generate quizzes for each phase
+                    console.log('📝 Pre-generating phase quizzes...');
+                    const quizService = new QuizService(process.env.GEMINI_API_KEY);
+                    const preGeneratedQuizzes = [];
+                    
+                    if (results.enhancedRoadmap?.phases) {
+                        for (const [phaseIdx, phase] of results.enhancedRoadmap.phases.entries()) {
+                            try {
+                                console.log(`📚 Generating quiz for phase: ${phase.phaseName}`);
+                                
+                                // Get all topics from this phase's modules
+                                const allTopicsInPhase = phase.modules?.flatMap(m => m.topicsCovered || []) || [];
+                                
+                                // Generate quiz questions using PDF content
+                                const questions = await quizService.generatePhaseQuiz(
+                                    { phaseName: phase.phaseName, phaseObjective: phase.phaseObjective },
+                                    results.enhancedRoadmap.subTopics || [],
+                                    phase.modules || [],
+                                    pdfText
+                                );
+                                
+                                // Create quiz record in database
+                                const quiz = await Quiz.create({
+                                    user: req.user._id,
+                                    quizTitle: `${phase.phaseName} - Comprehensive Assessment`,
+                                    quizType: 'phase-quiz',
+                                    roadmapId: documentId,
+                                    phaseId: phase.phaseId,
+                                    phaseNumber: phaseIdx + 1,
+                                    phaseName: phase.phaseName,
+                                    moduleId: null,
+                                    moduleName: null,
+                                    topicsCovered: allTopicsInPhase,
+                                    questions,
+                                    totalQuestions: questions.length,
+                                    status: 'not-started'
+                                });
+                                
+                                preGeneratedQuizzes.push({
+                                    phaseId: phase.phaseId,
+                                    quizId: quiz._id,
+                                    totalQuestions: questions.length
+                                });
+                                
+                                console.log(`✅ Generated ${questions.length} questions for ${phase.phaseName}`);
+                            } catch (quizError) {
+                                console.error(`⚠️ Failed to pre-generate quiz for ${phase.phaseName}:`, quizError.message);
+                                // Continue with other phases even if one fails
+                            }
+                        }
+                    }
+                    
+                    results.preGeneratedQuizzes = preGeneratedQuizzes;
+                    console.log(`✅ Pre-generated ${preGeneratedQuizzes.length} phase quizzes`);
+                    
                 } catch (roadmapError) {
                     console.error('❌ Roadmap generation error:', roadmapError.message);
                     throw roadmapError;

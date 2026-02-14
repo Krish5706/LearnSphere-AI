@@ -128,9 +128,8 @@ const quizSchema = new mongoose.Schema({
 });
 
 // Middleware to update updatedAt
-quizSchema.pre('save', function(next) {
+quizSchema.pre('save', function() {
     this.updatedAt = Date.now();
-    next();
 });
 
 module.exports = mongoose.model('Quiz', quizSchema);

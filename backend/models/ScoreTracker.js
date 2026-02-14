@@ -131,7 +131,7 @@ const scoreTrackerSchema = new mongoose.Schema({
 });
 
 // Middleware to update updatedAt and overall score
-scoreTrackerSchema.pre('save', function(next) {
+scoreTrackerSchema.pre('save', function() {
     this.updatedAt = Date.now();
     
     // Calculate overall score
@@ -171,8 +171,6 @@ scoreTrackerSchema.pre('save', function(next) {
     if (this.finalAssessment && this.finalAssessment.status === 'completed') {
         this.learningProgress.overallCompletion = this.phaseScores.length === this.learningProgress.totalPhases ? 100 : 85;
     }
-
-    next();
 });
 
 module.exports = mongoose.model('ScoreTracker', scoreTrackerSchema);

@@ -5,6 +5,7 @@
 
 const Quiz = require('../models/Quiz');
 const ScoreTracker = require('../models/ScoreTracker');
+const Document = require('../models/Document');
 const QuizService = require('../services/quizService');
 
 // Initialize Quiz Service
@@ -17,7 +18,7 @@ const quizService = new QuizService(process.env.GEMINI_API_KEY);
 exports.createModuleQuiz = async (req, res) => {
     try {
         const userId = req.user.id;
-        const { roadmapId, phaseId, phaseNumber, phaseName, moduleId, moduleName, topicsCovered, phaseObjective } = req.body;
+        const { roadmapId, phaseId, phaseNumber, phaseName, moduleId, moduleName, topicsCovered, phaseObjective, documentContent } = req.body;
 
         // Validate required fields
         if (!roadmapId || !phaseId || !moduleId) {
@@ -29,12 +30,27 @@ exports.createModuleQuiz = async (req, res) => {
 
         console.log(`🎯 Creating module quiz for: ${moduleName}`);
 
+        // Get document content if not provided
+        let pdfContent = documentContent || '';
+        if (!pdfContent) {
+            try {
+                const document = await Document.findById(roadmapId);
+                if (document && document.pdfMetadata && document.pdfMetadata.extractedText) {
+                    pdfContent = document.pdfMetadata.extractedText;
+                    console.log(`📄 Using PDF content (${pdfContent.length} chars)`);
+                }
+            } catch (docErr) {
+                console.log('⚠️ Could not fetch document content:', docErr.message);
+            }
+        }
+
         // Generate quiz questions
         const module = { moduleTitle: moduleName };
         const questions = await quizService.generateModuleQuiz(
             module, 
             topicsCovered || [], 
-            phaseObjective || ''
+            phaseObjective || '',
+            pdfContent
         );
 
         // Create quiz document
@@ -89,7 +105,7 @@ exports.createModuleQuiz = async (req, res) => {
 exports.createPhaseQuiz = async (req, res) => {
     try {
         const userId = req.user.id;
-        const { roadmapId, phaseId, phaseNumber, phaseName, phaseObjective, modulesInPhase, allTopicsInPhase } = req.body;
+        const { roadmapId, phaseId, phaseNumber, phaseName, phaseObjective, modulesInPhase, allTopicsInPhase, phaseTopics, documentContent } = req.body;
 
         if (!roadmapId || !phaseId) {
             return res.status(400).json({
@@ -99,12 +115,35 @@ exports.createPhaseQuiz = async (req, res) => {
         }
 
         console.log(`📚 Creating phase quiz for: ${phaseName}`);
+        console.log(`   Topics for this phase: ${allTopicsInPhase?.join(', ') || 'none specified'}`);
 
-        const phase = { phaseName, phaseObjective };
+        // Get document content if not provided
+        let pdfContent = documentContent || '';
+        if (!pdfContent) {
+            try {
+                // roadmapId might be the document ID
+                const document = await Document.findById(roadmapId);
+                if (document && document.pdfMetadata && document.pdfMetadata.extractedText) {
+                    pdfContent = document.pdfMetadata.extractedText;
+                    console.log(`📄 Using PDF content (${pdfContent.length} chars)`);
+                }
+            } catch (docErr) {
+                console.log('⚠️ Could not fetch document content:', docErr.message);
+            }
+        }
+
+        // Build phase object with phase-specific topics
+        const phase = { 
+            phaseName, 
+            phaseObjective,
+            phaseTopics: phaseTopics || [] // Pass full topic objects for better quiz generation
+        };
+        
         const questions = await quizService.generatePhaseQuiz(
             phase,
             allTopicsInPhase || [],
-            modulesInPhase || []
+            modulesInPhase || [],
+            pdfContent
         );
 
         const quiz = await Quiz.create({
@@ -432,15 +471,20 @@ async function updateScoreTracker(userId, quiz, percentageScore, correctCount) {
                 roadmapId: quiz.roadmapId,
                 fileName: 'Learning Roadmap',
                 learnerLevel: 'beginner',
-                phaseScores: []
+                phaseScores: [],
+                learningProgress: {
+                    totalPhases: 0,
+                    completedPhases: 0,
+                    overallCompletion: 0
+                }
             });
         }
 
         // Find or create phase score entry
-        let phaseScore = tracker.phaseScores.find(ps => ps.phaseId === quiz.phaseId);
+        let phaseScoreIndex = tracker.phaseScores.findIndex(ps => ps.phaseId === quiz.phaseId);
         
-        if (!phaseScore) {
-            phaseScore = {
+        if (phaseScoreIndex === -1) {
+            tracker.phaseScores.push({
                 phaseId: quiz.phaseId,
                 phaseNumber: quiz.phaseNumber,
                 phaseName: quiz.phaseName,
@@ -448,9 +492,12 @@ async function updateScoreTracker(userId, quiz, percentageScore, correctCount) {
                 phaseOverallQuiz: null,
                 phaseScore: 0,
                 phaseCompletion: 'in-progress'
-            };
-            tracker.phaseScores.push(phaseScore);
+            });
+            phaseScoreIndex = tracker.phaseScores.length - 1;
         }
+
+        // Get reference from the Mongoose array
+        const phaseScore = tracker.phaseScores[phaseScoreIndex];
 
         // Update based on quiz type
         if (quiz.quizType === 'module-quiz') {
@@ -493,23 +540,55 @@ async function updateScoreTracker(userId, quiz, percentageScore, correctCount) {
             };
             phaseScore.phaseCompletion = 'completed';
             
-            // Phase score is average of all assessments
+            // Phase score is the phase quiz score (or average if module quizzes exist)
             const scores = [];
             phaseScore.moduleQuizzes.forEach(mq => scores.push(mq.percentageScore));
-            if (phaseScore.phaseOverallQuiz) scores.push(phaseScore.phaseOverallQuiz.percentageScore);
+            scores.push(percentageScore); // Add the current phase quiz score
             
-            if (scores.length > 0) {
-                phaseScore.phaseScore = Math.round(
-                    scores.reduce((a, b) => a + b, 0) / scores.length
-                );
-            }
+            phaseScore.phaseScore = Math.round(
+                scores.reduce((a, b) => a + b, 0) / scores.length
+            );
         }
+
+        // Mark the phaseScores array as modified for Mongoose
+        tracker.markModified('phaseScores');
 
         // Update learning progress
         const completedPhases = tracker.phaseScores.filter(ps => ps.phaseCompletion === 'completed').length;
         tracker.learningProgress.completedPhases = completedPhases;
+        
+        // Recalculate overall score
+        const allPhaseScores = tracker.phaseScores
+            .map(ps => ps.phaseScore || 0)
+            .filter(score => score > 0);
+        
+        if (allPhaseScores.length > 0) {
+            tracker.overallScore = Math.round(
+                allPhaseScores.reduce((a, b) => a + b, 0) / allPhaseScores.length
+            );
+        }
+        
+        // Recalculate total questions and correct
+        let totalQuestions = 0;
+        let totalCorrect = 0;
+        tracker.phaseScores.forEach(phase => {
+            phase.moduleQuizzes.forEach(mq => {
+                totalQuestions += mq.totalQuestions || 0;
+                totalCorrect += mq.correctAnswers || 0;
+            });
+            if (phase.phaseOverallQuiz) {
+                totalQuestions += phase.phaseOverallQuiz.totalQuestions || 0;
+                totalCorrect += phase.phaseOverallQuiz.correctAnswers || 0;
+            }
+        });
+        tracker.totalQuestionsAttempted = totalQuestions;
+        tracker.totalQuestionsCorrect = totalCorrect;
+        tracker.averageAccuracy = totalQuestions > 0 
+            ? Math.round((totalCorrect / totalQuestions) * 100)
+            : 0;
 
         await tracker.save();
+        console.log(`✅ Score tracker updated: Overall ${tracker.overallScore}%, Questions ${totalCorrect}/${totalQuestions}`);
         return tracker;
     } catch (error) {
         console.error('❌ Error updating score tracker:', error);

@@ -22,6 +22,7 @@ build/
 # IDE
 .vscode/
 .idea/
+.cursor/
 *.swp
 *.swo
 *~
@@ -30,7 +31,7 @@ build/
 .DS_Store
 Thumbs.db
 
-# Uploads (if you want to ignore uploaded files)
-# backend/uploads/*
-# Uncomment the line above if you don't want to commit uploaded PDFs
+# Uploads (user-uploaded and generated files)
+backend/uploads/*.pdf
+backend/uploads/generated-reports/*.pdf
 

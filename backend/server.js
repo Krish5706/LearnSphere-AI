@@ -16,6 +16,7 @@ const dns = require('dns');
 // Import Routes
 const authRoutes = require('./routes/authRoutes');
 const documentRoutes = require('./routes/documentRoutes');
+const enhancedDocumentRoutes = require('./routes/enhancedDocumentRoutes');
 const userRoutes = require('./routes/userRoutes');
 const todoRoutes = require('./routes/todoRoutes');
 const quizRoutes = require('./routes/quizRoutes');
@@ -47,6 +48,7 @@ app.use((req, res, next) => {
 // --------------------
 app.use('/api/auth', authRoutes);
 app.use('/api/documents', documentRoutes);
+app.use('/api/v2', enhancedDocumentRoutes); // 🆕 Enhanced routes with improved roadmap generation
 app.use('/api/users', userRoutes);
 app.use('/api/todos', todoRoutes);
 app.use('/api/quizzes', quizRoutes);
