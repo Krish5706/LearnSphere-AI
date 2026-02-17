@@ -11,7 +11,8 @@ class QuizService {
             throw new Error('GEMINI_API_KEY is required');
         }
         this.genAI = new GoogleGenerativeAI(apiKey);
-        this.modelName = process.env.GEMINI_MODEL || 'gemini-1.5-pro';
+        // Use gemini-1.5-flash as default - it's free and reliable
+        this.modelName = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
         this.model = this.genAI.getGenerativeModel({ model: this.modelName });
     }
 
