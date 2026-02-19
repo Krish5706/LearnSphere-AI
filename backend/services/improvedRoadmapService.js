@@ -158,7 +158,7 @@ class ImprovedRoadmapService {
             const prompt = ImprovedGeminiPrompts.getCourseAnalysisPrompt(content);
             const response = await this.callGeminiAPI(prompt, 'Course Analysis');
             
-            const analysis = this.parseJSONResponse(response);
+            const analysis = this.tryParseOrFallback(response, 'Course Analysis', null);
             
             if (analysis && analysis.courseTitle) {
                 console.log(`   ✅ Course: "${analysis.courseTitle}"`);
@@ -184,7 +184,7 @@ class ImprovedRoadmapService {
             const prompt = ImprovedGeminiPrompts.getMainTopicPrompt(content);
             const response = await this.callGeminiAPI(prompt, 'Main Topic Extraction');
             
-            const topicData = this.parseJSONResponse(response);
+            const topicData = this.tryParseOrFallback(response, 'Main Topic Extraction', null);
             
             if (topicData && topicData.mainTopic) {
                 console.log(`   ✅ Main Topic: "${topicData.mainTopic}"`);
@@ -214,7 +214,7 @@ class ImprovedRoadmapService {
             const prompt = ImprovedGeminiPrompts.generatePhasesPrompt(courseAnalysis, content, numPhases);
             const response = await this.callGeminiAPI(prompt, 'Phase Generation');
             
-            const phasesData = this.parseJSONResponse(response);
+            const phasesData = this.tryParseOrFallback(response, 'Phase Generation', { phases: [] });
             
             if (phasesData && phasesData.phases && phasesData.phases.length > 0) {
                 phasesData.phases.forEach((phase, idx) => {
@@ -249,7 +249,7 @@ class ImprovedRoadmapService {
             const prompt = ImprovedGeminiPrompts.generateModulesPrompt(phaseData, relevantContent, moduleCount);
             const response = await this.callGeminiAPI(prompt, `Modules for Phase ${phaseData.phaseNumber}`);
             
-            const modulesData = this.parseJSONResponse(response);
+            const modulesData = this.tryParseOrFallback(response, `Modules for Phase ${phaseData.phaseNumber}`, { modules: [] });
             
             if (modulesData && modulesData.modules && modulesData.modules.length > 0) {
                 modulesData.modules.forEach((mod, idx) => {
@@ -283,7 +283,7 @@ class ImprovedRoadmapService {
             const prompt = ImprovedGeminiPrompts.generateLessonsPrompt(moduleData, relevantContent);
             const response = await this.callGeminiAPI(prompt, `Lessons for ${moduleData.moduleName}`);
             
-            const lessonsData = this.parseJSONResponse(response);
+            const lessonsData = this.tryParseOrFallback(response, `Lessons for ${moduleData.moduleName}`, { lessons: [] });
             
             if (lessonsData && lessonsData.lessons && lessonsData.lessons.length > 0) {
                 lessonsData.lessons.forEach((lesson, idx) => {
@@ -319,7 +319,7 @@ class ImprovedRoadmapService {
             );
             const response = await this.callGeminiAPI(prompt, `Quiz for ${moduleData.moduleName}`);
             
-            const quizData = this.parseJSONResponse(response);
+            const quizData = this.tryParseOrFallback(response, `Quiz for ${moduleData.moduleName}`, { questions: [], passingScore: 70 });
             
             if (quizData && quizData.questions && quizData.questions.length > 0) {
                 console.log(`         ✅ Generated ${quizData.questions.length} questions`);
@@ -344,7 +344,7 @@ class ImprovedRoadmapService {
             const prompt = ImprovedGeminiPrompts.generateModuleOutcomesPrompt(topicsList, content);
             const response = await this.callGeminiAPI(prompt, 'Learning Outcomes');
             
-            const outcomes = this.parseJSONResponse(response);
+            const outcomes = this.tryParseOrFallback(response, 'Learning Outcomes', { outcomes: [] });
             
             if (outcomes) {
                 const outcomeList = outcomes.outcomes || outcomes;
@@ -362,6 +362,12 @@ class ImprovedRoadmapService {
     // ============================================================================
     // CONTENT EXTRACTION HELPERS
     // ============================================================================
+
+    // Escape user-provided text for safe use in RegExp constructors
+    escapeForRegex(text) {
+        if (typeof text !== 'string') return '';
+        return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
 
     /**
      * Get relevant content for a specific phase
@@ -408,7 +414,8 @@ class ImprovedRoadmapService {
             const keywords = topicName.split(' ').filter(w => w.length > 3);
             
             keywords.forEach(keyword => {
-                const pattern = new RegExp(`[^.]*${keyword}[^.]*\\.`, 'gi');
+                const safe = this.escapeForRegex(keyword);
+                const pattern = new RegExp(`[^.]*${safe}[^.]*\\.`, 'gi');
                 const matches = fullContent.match(pattern);
                 if (matches) {
                     relevantContent += matches.slice(0, 5).join(' ') + '\n\n';
@@ -501,34 +508,126 @@ class ImprovedRoadmapService {
      */
     parseJSONResponse(response) {
         try {
-            // Try to find JSON object or array in response
-            const jsonObjectMatch = response.match(/\{[\s\S]*\}/);
-            const jsonArrayMatch = response.match(/\[[\s\S]*\]/);
-            
-            let jsonStr = null;
-            
-            if (jsonObjectMatch) {
-                jsonStr = jsonObjectMatch[0];
-            } else if (jsonArrayMatch) {
-                jsonStr = jsonArrayMatch[0];
+            // Robust JSON parsing: attempt to extract the first balanced JSON object/array
+            const cleanResponse = String(response || '');
+
+            function extractBalanced(startChar) {
+                const openChar = startChar;
+                const closeChar = openChar === '{' ? '}' : ']';
+                const first = cleanResponse.indexOf(openChar);
+                if (first === -1) return null;
+
+                let inString = false;
+                let escape = false;
+                let depth = 0;
+
+                for (let i = first; i < cleanResponse.length; i++) {
+                    const ch = cleanResponse[i];
+
+                    if (inString) {
+                        if (escape) {
+                            escape = false;
+                        } else if (ch === '\\') {
+                            escape = true;
+                        } else if (ch === '"') {
+                            inString = false;
+                        }
+                        continue;
+                    }
+
+                    if (ch === '"') {
+                        inString = true;
+                        continue;
+                    }
+
+                    if (ch === openChar) {
+                        depth++;
+                    } else if (ch === closeChar) {
+                        depth--;
+                        if (depth === 0) {
+                            return cleanResponse.substring(first, i + 1);
+                        }
+                    }
+                }
+
+                return null;
             }
-            
-            if (jsonStr) {
-                // Clean up common issues
-                jsonStr = jsonStr
+
+            function tryParseCandidate(candidate) {
+                if (!candidate) return null;
+                let s = candidate
                     .replace(/```json\s*/gi, '')
                     .replace(/```\s*/gi, '')
-                    .replace(/[\x00-\x1F\x7F]/g, ' ')  // Remove control characters
+                    .replace(/[\x00-\x1F\x7F]/g, ' ') // remove control characters
                     .trim();
-                
-                return JSON.parse(jsonStr);
+
+                // First attempt: direct parse
+                try {
+                    return JSON.parse(s);
+                } catch (e) {
+                    // Try simple cleanup: remove trailing commas before closing braces/brackets
+                    const cleaned = s.replace(/,\s*(?=[}\]])/g, '');
+                    try {
+                        return JSON.parse(cleaned);
+                    } catch (e2) {
+                        // As a last resort, return null to let caller handle
+                        return null;
+                    }
+                }
             }
-            
-            throw new Error('No valid JSON found in response');
-        } catch (parseError) {
-            console.error(`   ⚠️  JSON Parse Error: ${parseError.message}`);
-            console.error(`   Response preview: ${response.substring(0, 200)}...`);
-            throw new Error(`Failed to parse API response: ${parseError.message}`);
+
+            try {
+                // Try object then array extraction
+                const objCandidate = extractBalanced('{');
+                const arrCandidate = extractBalanced('[');
+
+                let parsed = tryParseCandidate(objCandidate) || tryParseCandidate(arrCandidate);
+
+                if (parsed !== null) return parsed;
+
+                // If no balanced candidate parsed, try to parse entire response after cleanup
+                const fallback = cleanResponse
+                    .replace(/```json\s*/gi, '')
+                    .replace(/```\s*/gi, '')
+                    .replace(/[\x00-\x1F\x7F]/g, ' ')
+                    .trim();
+
+                try {
+                    return JSON.parse(fallback);
+                } catch (finalErr) {
+                    console.error(`   ⚠️  JSON Parse Error: ${finalErr.message}`);
+                    console.error(`   Response preview: ${cleanResponse.substring(0, 300)}...`);
+                    throw new Error(`Failed to parse API response: ${finalErr.message}`);
+                }
+            } catch (err) {
+                console.error(`   ⚠️  JSON Parse Error: ${err.message}`);
+                console.error(`   Response preview: ${cleanResponse.substring(0, 300)}...`);
+                throw new Error(`Failed to parse API response: ${err.message}`);
+            }
+        } catch (error) {
+            console.error(`   ⚠️  JSON Parse Error: ${error.message}`);
+            throw error;
+        }
+    }
+
+    /**
+     * Safe JSON parse wrapper: returns parsed value or a provided fallback.
+     * fallback can be a value or a function that returns a value (optionally using the error).
+     */
+    tryParseOrFallback(response, operationName = 'Parse', fallback = null) {
+        try {
+            return this.parseJSONResponse(response);
+        } catch (e) {
+            console.warn(`   ⚠️  ${operationName} parse failed: ${e.message}`);
+            if (typeof fallback === 'function') {
+                try {
+                    return fallback(e);
+                } catch (ferr) {
+                    console.warn(`   ⚠️  Fallback generator failed: ${ferr.message}`);
+                    return null;
+                }
+            }
+            return fallback;
         }
     }
 
@@ -656,6 +755,14 @@ class ImprovedRoadmapService {
                     difficulty: phaseData.difficulty || 'intermediate',
                     topicsCovered: moduleData.topicsCovered || [],
                     learningObjectives: moduleData.learningObjectives || [],
+                    // Actionable steps for learners for this module
+                    actionSteps: moduleData.actionSteps || (moduleData.learningObjectives || []).map((lo, idx) => ({
+                        stepId: `step_${moduleData.moduleId || moduleData.moduleNumber}_${idx + 1}`,
+                        description: typeof lo === 'string' ? lo : (lo.description || lo),
+                        expectedDurationMinutes: 30
+                    })),
+                    // Explicit dependency list (module ids or names)
+                    dependencies: moduleData.dependencies || [],
                     lessons: lessons.map((lesson, idx) => ({
                         lessonId: lesson.lessonId || `les_${idx + 1}`,
                         lessonNumber: lesson.lessonNumber || idx + 1,
@@ -680,6 +787,13 @@ class ImprovedRoadmapService {
                         timeLimit: quiz.timeLimit || '15 minutes'
                     },
                     learningOutcomes: outcomes,
+                    // Measurable outcomes for this module (KPI placeholders)
+                    measurableOutcomes: (outcomes || []).map((o, i) => ({
+                        id: `mo_${moduleData.moduleId || moduleData.moduleNumber}_${i + 1}`,
+                        description: typeof o === 'string' ? o : (o.description || o),
+                        metric: 'comprehension_score',
+                        target: 0.8
+                    })),
                     skillsGained: moduleData.skillsGained || []
                 });
             }
@@ -692,6 +806,8 @@ class ImprovedRoadmapService {
                 phaseObjective: phaseData.phaseObjective,
                 difficulty: phaseData.difficulty,
                 estimatedHours: phaseData.estimatedHours || enrichedModules.length * 3,
+                // Recommended duration (days) assuming ~3 study hours/day
+                recommendedDurationDays: Math.max(1, Math.round((phaseData.estimatedHours || enrichedModules.length * 3) / 3)),
                 chaptersIncluded: phaseData.chaptersIncluded || [],
                 learningOutcomes: phaseData.learningOutcomes || [],
                 modules: enrichedModules,
@@ -750,6 +866,21 @@ class ImprovedRoadmapService {
             
             // Statistics
             statistics: statistics,
+            // High-level course objective and timeline guidance
+            courseObjective: courseAnalysis.courseObjective || courseAnalysis.courseDescription || `Learn ${courseAnalysis.courseTitle}`,
+            timeline: {
+                // Estimated total days assuming ~3 hours/day study
+                estimatedTotalDays: Math.max(1, Math.round(statistics.estimatedTotalHours / 3 || 1)),
+                recommendedPacingHoursPerDay: 3,
+                startDate: null,
+                endDate: null,
+                perPhase: phases.map(p => ({
+                    phaseId: p.phaseId,
+                    recommendedDurationDays: p.recommendedDurationDays || 0
+                }))
+            },
+            // Top-level action steps (aggregated from modules)
+            actionSteps: phases.flatMap(p => p.modules.flatMap(m => m.actionSteps || [])),
             
             // Metadata
             generatedAt: new Date().toISOString(),
@@ -794,7 +925,7 @@ class ImprovedRoadmapService {
         );
         
         const topicsResponse = await this.callGeminiAPI(topicsPrompt, 'Quick Topics Extraction');
-        const topicsData = this.parseJSONResponse(topicsResponse);
+        const topicsData = this.tryParseOrFallback(topicsResponse, 'Quick Topics Extraction', {});
         
         // Build simplified phases
         const phases = [];
