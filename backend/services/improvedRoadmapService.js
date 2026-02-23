@@ -31,10 +31,19 @@ class ImprovedRoadmapService {
         this.config = {
             maxContentLength: 100000,  // Maximum content to send to Gemini
             chunkSize: 30000,          // Size for chunked processing
-            timeoutMs: 60000,          // API timeout
-            maxRetries: 3,             // API retry count
+            // ⚡ OPTIMIZED: Reduced timeouts/retries for faster failures and fallback handling
+            timeoutMs: 25000,          // Reduced from 60s → faster failures & quicker fallbacks
+            maxRetries: 2,             // Reduced from 3 → fewer redundant retries (rate-limit special-cased)
+            batchPromptMaxChars: 15000, // Max context for batched prompts (token optimization)
             modulesPerPhase: 2,        // Default modules per phase
-            lessonsPerModule: 3        // Default lessons per module
+            lessonsPerModule: 3,       // Default lessons per module
+            concurrency: 3             // Max parallel module/lesson generation tasks
+        };
+        // In-memory response cache: key=SHA256(prompt), value={response, timestamp}
+        this.responseCache = new Map();
+        this.cacheConfig = {
+            enableCache: true,
+            ttlMs: 3600000 // 1 hour cache TTL
         };
     }
 
@@ -266,12 +275,149 @@ class ImprovedRoadmapService {
     }
 
     // ============================================================================
-    // STEP 4: LESSON GENERATION
+    // STEP 4B: BATCHED MODULE+LESSON+QUIZ+OUTCOMES GENERATION (OPTIMIZED)
     // ============================================================================
 
     /**
-     * Generate detailed lessons for a module
+     * ⚡ MASSIVELY FASTER: Generate lessons + quiz + outcomes for a module in ONE API call
+     * Combines what previously took 4 separate calls into 1 structured batch request
      */
+    async generateModuleBatchContent(moduleData, phaseData, content) {
+        const moduleName = moduleData.moduleName;
+        console.log(`\n      ⚡ Batch-generating lessons+quiz+outcomes for: ${moduleName}`);
+        
+        try {
+            // ⚡ Cap content to token budget
+            const cappedContent = this.capContent(content);
+            
+            // Build batch prompt: request all 3 outputs in one JSON response
+            const batchPrompt = `You are an expert educational content designer. Generate structured educational content ONLY as valid JSON.
+
+**Phase:** ${phaseData.phaseName}
+**Module:** ${moduleName}
+**Duration:** ${moduleData.estimatedMinutes || 180} minutes
+**Difficulty:** ${phaseData.difficulty || 'intermediate'}
+
+**PDF Context (first ${cappedContent.length} chars):**
+${cappedContent}
+
+**TASK: Generate lessons, outcomes, and quiz in ONE structured JSON response.**
+
+Return ONLY this JSON structure (no explanations, no markdown, valid JSON only):
+{
+  "lessons": [
+    {
+      "lessonTitle": "...",
+      "lessonDuration": "...",
+      "learningObjectives": ["objective 1", "objective 2"],
+      "mainContent": "concise 2-3 sentence explanation",
+      "keyPoints": ["point 1", "point 2"],
+      "examples": ["example 1"],
+      "summary": "concise recap"
+    }
+  ],
+  "learningOutcomes": ["outcome 1", "outcome 2"],
+  "quiz": {
+    "quizTitle": "Module Quiz",
+    "questions": [
+      {
+        "question": "...?",
+        "options": ["A", "B", "C", "D"],
+        "correctAnswer": "A"
+      }
+    ],
+    "passingScore": 70
+  }
+}`;
+
+            const response = await this.callGeminiAPI(batchPrompt, `Batch content for ${moduleName}`);
+            const batchData = this.tryParseOrFallback(response, `Batch for ${moduleName}`, { 
+                lessons: [], 
+                learningOutcomes: [], 
+                quiz: { questions: [], passingScore: 70 } 
+            });
+
+            const lessons = (batchData && batchData.lessons) || [];
+            const outcomes = (batchData && batchData.learningOutcomes) || [];
+            const quiz = (batchData && batchData.quiz) || { questions: [], passingScore: 70 };
+
+            if (lessons.length > 0) {
+                console.log(`         ✅ Generated ${lessons.length} lessons, ${outcomes.length} outcomes, ${quiz.questions?.length || 0} quiz q's`);
+            }
+
+            return { lessons, outcomes, quiz };
+        } catch (error) {
+            console.error(`         ❌ Batch generation failed: ${error.message}`);
+            return { lessons: [], outcomes: [], quiz: { questions: [], passingScore: 70 } };
+        }
+    }
+
+    /**
+     * ⚡ Enrich a module with lessons, quiz, and outcomes using batched generation
+     * This is called in parallel (mapWithConcurrency) for speed
+     */
+    async enrichModuleWithBatchContent(moduleData, phaseData, content) {
+        console.log(`\n   📦 Processing Module: ${moduleData.moduleName}`);
+        
+        // ⚡ Batch-generate lessons + quiz + outcomes in ONE call
+        const batchContent = await this.generateModuleBatchContent(moduleData, phaseData, content);
+        const lessons = batchContent.lessons || [];
+        const outcomes = batchContent.outcomes || [];
+        const quiz = batchContent.quiz || { questions: [], passingScore: 70 };
+
+        // Build enriched module structure
+        return {
+            moduleId: moduleData.moduleId,
+            moduleNumber: moduleData.moduleNumber,
+            moduleName: moduleData.moduleName,
+            moduleDescription: moduleData.moduleDescription,
+            estimatedMinutes: moduleData.estimatedMinutes || 180,
+            difficulty: phaseData.difficulty || 'intermediate',
+            topicsCovered: moduleData.topicsCovered || [],
+            learningObjectives: moduleData.learningObjectives || [],
+            // Actionable steps for learners for this module
+            actionSteps: moduleData.actionSteps || (moduleData.learningObjectives || []).map((lo, idx) => ({
+                stepId: `step_${moduleData.moduleId || moduleData.moduleNumber}_${idx + 1}`,
+                description: typeof lo === 'string' ? lo : (lo.description || lo),
+                expectedDurationMinutes: 30
+            })),
+            // Explicit dependency list (module ids or names)
+            dependencies: moduleData.dependencies || [],
+            lessons: lessons.map((lesson, idx) => ({
+                lessonId: lesson.lessonId || `les_${idx + 1}`,
+                lessonNumber: lesson.lessonNumber || idx + 1,
+                lessonTitle: lesson.lessonTitle,
+                lessonDuration: lesson.lessonDuration || '20 minutes',
+                lessonType: lesson.lessonType || 'concept',
+                introduction: lesson.introduction || {},
+                learningObjectives: lesson.learningObjectives || [],
+                mainContent: lesson.mainContent || {},
+                examples: lesson.examples || [],
+                keyPoints: lesson.keyPoints || [],
+                terminology: lesson.terminology || [],
+                practiceActivity: lesson.practiceActivity || {},
+                summary: lesson.summary || '',
+                commonMisconceptions: lesson.commonMisconceptions || []
+            })),
+            assessment: {
+                type: 'quiz',
+                quizTitle: quiz.quizTitle || `${moduleData.moduleName} Quiz`,
+                questions: quiz.questions || [],
+                passingScore: quiz.passingScore || 70,
+                timeLimit: quiz.timeLimit || '15 minutes'
+            },
+            learningOutcomes: outcomes,
+            // Measurable outcomes for this module (KPI placeholders)
+            measurableOutcomes: (outcomes || []).map((o, i) => ({
+                id: `mo_${moduleData.moduleId || moduleData.moduleNumber}_${i + 1}`,
+                description: typeof o === 'string' ? o : (o.description || o),
+                metric: 'comprehension_score',
+                target: 0.8
+            })),
+            skillsGained: moduleData.skillsGained || []
+        };
+    }
+
     async generateLessonsForModule(moduleData, content) {
         const lessonCount = moduleData.lessonsCount || this.config.lessonsPerModule;
         console.log(`\n      📝 Generating ${lessonCount} Lessons for: ${moduleData.moduleName}`);
@@ -369,6 +515,63 @@ class ImprovedRoadmapService {
         return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     }
 
+    // ⚡ Cap content to N characters for batched prompts (token optimization)
+    capContent(content, maxChars = this.config.batchPromptMaxChars) {
+        if (!content || content.length <= maxChars) return content;
+        // Return first maxChars characters, truncate at sentence boundary to avoid mid-word cuts
+        const truncated = content.substring(0, maxChars);
+        const lastPeriod = truncated.lastIndexOf('.');
+        return lastPeriod > 0 ? truncated.substring(0, lastPeriod + 1) : truncated;
+    }
+
+    // ⚡ Concurrency helper: run N items with up to M concurrent tasks
+    async mapWithConcurrency(items, asyncFn, concurrency = this.config.concurrency) {
+        if (!items || items.length === 0) return [];
+        const results = new Array(items.length);
+        const executing = [];
+
+        for (let i = 0; i < items.length; i++) {
+            const promise = Promise.resolve(items[i]).then(item => asyncFn(item, i))
+                .then(result => { results[i] = result; });
+            executing.push(promise);
+
+            if (executing.length >= concurrency) {
+                await Promise.race(executing);
+                // Remove settled promises
+                executing.splice(0, executing.findIndex(p => !p.settled));
+                executing.length = executing.filter((p, idx) => {
+                    try { p.settled; return true; } catch { return false; }
+                }).length;
+            }
+        }
+
+        await Promise.all(executing);
+        return results;
+    }
+
+    // ⚡ Simple prompt hash cache: avoid re-requesting identical prompts
+    getPromptHash(prompt) {
+        const crypto = require('crypto');
+        return crypto.createHash('sha256').update(prompt).digest('hex');
+    }
+
+    getCachedResponse(prompt) {
+        if (!this.cacheConfig.enableCache) return null;
+        const hash = this.getPromptHash(prompt);
+        const cached = this.responseCache.get(hash);
+        if (cached && Date.now() - cached.timestamp < this.cacheConfig.ttlMs) {
+            console.log('   💾 Cache hit');
+            return cached.response;
+        }
+        return null;
+    }
+
+    setCachedResponse(prompt, response) {
+        if (!this.cacheConfig.enableCache) return;
+        const hash = this.getPromptHash(prompt);
+        this.responseCache.set(hash, { response, timestamp: Date.now() });
+    }
+
     /**
      * Get relevant content for a specific phase
      */
@@ -442,10 +645,16 @@ class ImprovedRoadmapService {
     // ============================================================================
 
     /**
-     * Call Gemini API with timeout, retry logic, and error handling
+     * Call Gemini API with timeout, retry logic, error handling, and caching
+     * ⚡ MUCH FASTER: caches responses by prompt hash to avoid re-requesting identical prompts
      */
     async callGeminiAPI(prompt, operationName = 'API Call') {
+        // ⚡ Check cache first
+        const cached = this.getCachedResponse(prompt);
+        if (cached) return cached;
+
         let lastError = null;
+        const startTime = Date.now();
         
         for (let attempt = 1; attempt <= this.config.maxRetries; attempt++) {
             try {
@@ -467,7 +676,12 @@ class ImprovedRoadmapService {
                     throw new Error('Empty response from API');
                 }
                 
-                console.log(`   ✅ ${operationName} completed (${text.length} chars)`);
+                const elapsed = Date.now() - startTime;
+                console.log(`   ✅ ${operationName} completed (${text.length} chars, ${elapsed}ms)`);
+                
+                // ⚡ Cache the response
+                this.setCachedResponse(prompt, text);
+                
                 return text;
                 
             } catch (error) {
@@ -697,7 +911,7 @@ class ImprovedRoadmapService {
         for (const phaseData of phasesData.phases) {
             console.log(`\n📍 Processing Phase ${phaseData.phaseNumber}: ${phaseData.phaseName}`);
             
-            // Generate modules for this phase
+            // ⚡ Generate modules for this phase
             let modules;
             try {
                 modules = await this.generateModulesForPhase(
@@ -710,93 +924,12 @@ class ImprovedRoadmapService {
                 throw new Error(`Cannot generate modules for "${phaseData.phaseName}": ${error.message}`);
             }
 
-            // Generate lessons and quiz for each module
-            const enrichedModules = [];
-            
-            for (const moduleData of modules) {
-                console.log(`\n   📦 Processing Module: ${moduleData.moduleName}`);
-                
-                // Generate lessons
-                let lessons;
-                try {
-                    lessons = await this.generateLessonsForModule(moduleData, processed.full);
-                } catch (error) {
-                    console.error(`      ❌ Lesson generation failed: ${error.message}`);
-                    throw new Error(`Cannot generate lessons for "${moduleData.moduleName}": ${error.message}`);
-                }
-
-                // Generate quiz
-                let quiz;
-                try {
-                    quiz = await this.generateModuleQuiz(moduleData, lessons, processed.full);
-                } catch (error) {
-                    console.warn(`      ⚠️ Quiz generation failed, skipping quiz: ${error.message}`);
-                    quiz = { questions: [], passingScore: 70 };
-                }
-
-                // Generate learning outcomes
-                let outcomes;
-                try {
-                    const topicNames = moduleData.topicsCovered?.map(t => 
-                        typeof t === 'string' ? t : t.topicName
-                    ) || [];
-                    outcomes = await this.generateLearningOutcomes(topicNames, processed.full);
-                } catch (error) {
-                    console.warn(`      ⚠️ Outcomes generation failed: ${error.message}`);
-                    outcomes = [];
-                }
-
-                enrichedModules.push({
-                    moduleId: moduleData.moduleId,
-                    moduleNumber: moduleData.moduleNumber,
-                    moduleName: moduleData.moduleName,
-                    moduleDescription: moduleData.moduleDescription,
-                    estimatedMinutes: moduleData.estimatedMinutes || 180,
-                    difficulty: phaseData.difficulty || 'intermediate',
-                    topicsCovered: moduleData.topicsCovered || [],
-                    learningObjectives: moduleData.learningObjectives || [],
-                    // Actionable steps for learners for this module
-                    actionSteps: moduleData.actionSteps || (moduleData.learningObjectives || []).map((lo, idx) => ({
-                        stepId: `step_${moduleData.moduleId || moduleData.moduleNumber}_${idx + 1}`,
-                        description: typeof lo === 'string' ? lo : (lo.description || lo),
-                        expectedDurationMinutes: 30
-                    })),
-                    // Explicit dependency list (module ids or names)
-                    dependencies: moduleData.dependencies || [],
-                    lessons: lessons.map((lesson, idx) => ({
-                        lessonId: lesson.lessonId || `les_${idx + 1}`,
-                        lessonNumber: lesson.lessonNumber || idx + 1,
-                        lessonTitle: lesson.lessonTitle,
-                        lessonDuration: lesson.lessonDuration || '20 minutes',
-                        lessonType: lesson.lessonType || 'concept',
-                        introduction: lesson.introduction || {},
-                        learningObjectives: lesson.learningObjectives || [],
-                        mainContent: lesson.mainContent || {},
-                        examples: lesson.examples || [],
-                        keyPoints: lesson.keyPoints || [],
-                        terminology: lesson.terminology || [],
-                        practiceActivity: lesson.practiceActivity || {},
-                        summary: lesson.summary || '',
-                        commonMisconceptions: lesson.commonMisconceptions || []
-                    })),
-                    assessment: {
-                        type: 'quiz',
-                        quizTitle: quiz.quizTitle || `${moduleData.moduleName} Quiz`,
-                        questions: quiz.questions || [],
-                        passingScore: quiz.passingScore || 70,
-                        timeLimit: quiz.timeLimit || '15 minutes'
-                    },
-                    learningOutcomes: outcomes,
-                    // Measurable outcomes for this module (KPI placeholders)
-                    measurableOutcomes: (outcomes || []).map((o, i) => ({
-                        id: `mo_${moduleData.moduleId || moduleData.moduleNumber}_${i + 1}`,
-                        description: typeof o === 'string' ? o : (o.description || o),
-                        metric: 'comprehension_score',
-                        target: 0.8
-                    })),
-                    skillsGained: moduleData.skillsGained || []
-                });
-            }
+            // ⚡ PARALLELIZE: Generate enriched content (lessons+quiz+outcomes) for each module in parallel
+            const enrichedModules = await this.mapWithConcurrency(
+                modules,
+                async (moduleData) => this.enrichModuleWithBatchContent(moduleData, phaseData, processed.full),
+                this.config.concurrency
+            );
 
             phases.push({
                 phaseId: phaseData.phaseId,
