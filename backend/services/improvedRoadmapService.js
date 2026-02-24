@@ -8,12 +8,14 @@
  * - Full PDF content extraction and processing
  * - NO static/default fallbacks - all content from document
  * - Professional Coursera-like learning experience
+ * - ⚡ GROQ FALLBACK: Automatically switches to Groq when Gemini quota exceeded
  * 
  * @author LearnSphere AI
- * @version 2.0.0
+ * @version 2.1.0
  */
 
 const { GoogleGenerativeAI } = require('@google/generative-ai');
+const Groq = require('groq-sdk');
 const ImprovedGeminiPrompts = require('./improvedGeminiPrompts');
 
 class ImprovedRoadmapService {
@@ -27,17 +29,23 @@ class ImprovedRoadmapService {
         this.modelName = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
         this.model = this.genAI.getGenerativeModel({ model: this.modelName });
         
-        // Configuration
+        // ⚡ Initialize Groq as fallback
+        this.groqApiKey = process.env.GROQ_API_KEY;
+        this.groqModel = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
+        this.groqClient = this.groqApiKey ? new Groq({ apiKey: this.groqApiKey }) : null;
+        this.useGroqFallback = false; // Will be set to true when Gemini quota exceeded
+        
+        // Configuration - ⚡ OPTIMIZED for faster generation
         this.config = {
-            maxContentLength: 100000,  // Maximum content to send to Gemini
-            chunkSize: 30000,          // Size for chunked processing
-            // ⚡ OPTIMIZED: Reduced timeouts/retries for faster failures and fallback handling
-            timeoutMs: 25000,          // Reduced from 60s → faster failures & quicker fallbacks
-            maxRetries: 2,             // Reduced from 3 → fewer redundant retries (rate-limit special-cased)
-            batchPromptMaxChars: 15000, // Max context for batched prompts (token optimization)
+            maxContentLength: 50000,   // Reduced for faster processing
+            chunkSize: 15000,          // Smaller chunks = faster API calls
+            timeoutMs: 60000,          // 60s timeout - faster failure detection
+            maxRetries: 2,             // Reduced retries for speed
+            batchPromptMaxChars: 15000, // Smaller context = faster response
+            analysisMaxChars: 20000,   // Reduced for faster analysis
             modulesPerPhase: 2,        // Default modules per phase
-            lessonsPerModule: 3,       // Default lessons per module
-            concurrency: 3             // Max parallel module/lesson generation tasks
+            lessonsPerModule: 2,       // Reduced lessons per module for speed
+            concurrency: 4             // Increased parallelization
         };
         // In-memory response cache: key=SHA256(prompt), value={response, timestamp}
         this.responseCache = new Map();
@@ -45,6 +53,124 @@ class ImprovedRoadmapService {
             enableCache: true,
             ttlMs: 3600000 // 1 hour cache TTL
         };
+    }
+
+    // ============================================================================
+    // SCHEMA SANITIZATION - Fix data types for Mongoose compatibility
+    // ============================================================================
+
+    /**
+     * ⚡ CRITICAL FIX: Sanitize roadmap data to match Mongoose schema
+     * - Converts topicsCovered from array of objects to array of strings
+     * - Converts introduction from {} to "" 
+     * - Handles all nested phases/modules/lessons
+     */
+    sanitizeRoadmapForSchema(roadmap) {
+        if (!roadmap) return roadmap;
+
+        const sanitizeTopicsCovered = (topics) => {
+            if (!Array.isArray(topics)) return [];
+            return topics.map(topic => {
+                if (typeof topic === 'string') return topic;
+                if (typeof topic === 'object' && topic !== null) {
+                    // Extract topicName or name from object
+                    return topic.topicName || topic.name || topic.title || 
+                           (typeof topic === 'object' ? JSON.stringify(topic).substring(0, 100) : String(topic));
+                }
+                return String(topic);
+            }).filter(t => t && t.length > 0);
+        };
+
+        const sanitizeLesson = (lesson) => {
+            if (!lesson) return lesson;
+            return {
+                ...lesson,
+                // Convert introduction from object to string
+                introduction: typeof lesson.introduction === 'string' 
+                    ? lesson.introduction 
+                    : (lesson.introduction && typeof lesson.introduction === 'object' && Object.keys(lesson.introduction).length > 0)
+                        ? JSON.stringify(lesson.introduction)
+                        : '',
+                // Ensure other string fields are strings
+                lessonContent: typeof lesson.lessonContent === 'string' 
+                    ? lesson.lessonContent 
+                    : (lesson.mainContent && typeof lesson.mainContent === 'string' ? lesson.mainContent : ''),
+                summary: typeof lesson.summary === 'string' ? lesson.summary : '',
+                // Ensure arrays are arrays of strings
+                learningObjectives: Array.isArray(lesson.learningObjectives) 
+                    ? lesson.learningObjectives.map(o => typeof o === 'string' ? o : String(o))
+                    : [],
+                keyPoints: Array.isArray(lesson.keyPoints)
+                    ? lesson.keyPoints.map(k => typeof k === 'string' ? k : String(k))
+                    : [],
+                prerequisites: Array.isArray(lesson.prerequisites)
+                    ? lesson.prerequisites.map(p => typeof p === 'string' ? p : String(p))
+                    : [],
+                resources: Array.isArray(lesson.resources)
+                    ? lesson.resources.map(r => typeof r === 'string' ? r : String(r))
+                    : [],
+                commonMisconceptions: Array.isArray(lesson.commonMisconceptions)
+                    ? lesson.commonMisconceptions.map(m => typeof m === 'string' ? m : String(m))
+                    : []
+            };
+        };
+
+        const sanitizeModule = (module) => {
+            if (!module) return module;
+            return {
+                ...module,
+                // Convert topicsCovered to array of strings
+                topicsCovered: sanitizeTopicsCovered(module.topicsCovered),
+                // Sanitize all lessons
+                lessons: Array.isArray(module.lessons) 
+                    ? module.lessons.map(sanitizeLesson)
+                    : [],
+                // Ensure estimatedTime/estimatedDuration are strings
+                estimatedTime: typeof module.estimatedTime === 'string' 
+                    ? module.estimatedTime 
+                    : String(module.estimatedTime || module.estimatedMinutes ? `${module.estimatedMinutes} minutes` : '60 minutes'),
+                estimatedDuration: typeof module.estimatedDuration === 'string'
+                    ? module.estimatedDuration
+                    : String(module.estimatedDuration || '')
+            };
+        };
+
+        const sanitizePhase = (phase) => {
+            if (!phase) return phase;
+            return {
+                ...phase,
+                // Sanitize all modules
+                modules: Array.isArray(phase.modules)
+                    ? phase.modules.map(sanitizeModule)
+                    : [],
+                // Ensure string fields
+                estimatedDuration: typeof phase.estimatedDuration === 'string'
+                    ? phase.estimatedDuration
+                    : String(phase.estimatedHours ? `${phase.estimatedHours} hours` : ''),
+                completionCriteria: typeof phase.completionCriteria === 'string'
+                    ? phase.completionCriteria
+                    : '',
+                summary: typeof phase.summary === 'string' ? phase.summary : ''
+            };
+        };
+
+        // Sanitize both phases and learningPath arrays
+        if (Array.isArray(roadmap.phases)) {
+            roadmap.phases = roadmap.phases.map(sanitizePhase);
+        }
+        if (Array.isArray(roadmap.learningPath)) {
+            roadmap.learningPath = roadmap.learningPath.map(sanitizePhase);
+        }
+
+        // Ensure subTopics is array of strings
+        if (Array.isArray(roadmap.subTopics)) {
+            roadmap.subTopics = roadmap.subTopics.map(t => 
+                typeof t === 'string' ? t : (t?.name || t?.topicName || String(t))
+            );
+        }
+
+        console.log('✅ Roadmap sanitized for schema compatibility');
+        return roadmap;
     }
 
     // ============================================================================
@@ -164,7 +290,10 @@ class ImprovedRoadmapService {
         console.log('═'.repeat(50));
         
         try {
-            const prompt = ImprovedGeminiPrompts.getCourseAnalysisPrompt(content);
+            // ⚡ Cap content to avoid timeout on large documents
+            const cappedContent = this.capContent(content, this.config.analysisMaxChars);
+            console.log(`   📄 Content size: ${content.length} chars (capped to ${cappedContent.length} for analysis)`);
+            const prompt = ImprovedGeminiPrompts.getCourseAnalysisPrompt(cappedContent);
             const response = await this.callGeminiAPI(prompt, 'Course Analysis');
             
             const analysis = this.tryParseOrFallback(response, 'Course Analysis', null);
@@ -220,7 +349,10 @@ class ImprovedRoadmapService {
         console.log('═'.repeat(50));
         
         try {
-            const prompt = ImprovedGeminiPrompts.generatePhasesPrompt(courseAnalysis, content, numPhases);
+            // ⚡ Cap content to avoid timeout on large documents
+            const cappedContent = this.capContent(content, this.config.analysisMaxChars);
+            console.log(`   📄 Content size: ${content.length} chars (capped to ${cappedContent.length} for phase generation)`);
+            const prompt = ImprovedGeminiPrompts.generatePhasesPrompt(courseAnalysis, cappedContent, numPhases);
             const response = await this.callGeminiAPI(prompt, 'Phase Generation');
             
             const phasesData = this.tryParseOrFallback(response, 'Phase Generation', { phases: [] });
@@ -389,14 +521,19 @@ Return ONLY this JSON structure (no explanations, no markdown, valid JSON only):
                 lessonTitle: lesson.lessonTitle,
                 lessonDuration: lesson.lessonDuration || '20 minutes',
                 lessonType: lesson.lessonType || 'concept',
-                introduction: lesson.introduction || {},
+                // ⚡ FIX: Ensure introduction is always a string, not an object
+                introduction: typeof lesson.introduction === 'string' ? lesson.introduction : '',
                 learningObjectives: lesson.learningObjectives || [],
-                mainContent: lesson.mainContent || {},
+                // ⚡ FIX: Convert mainContent to string if object
+                mainContent: typeof lesson.mainContent === 'string' ? lesson.mainContent : 
+                    (typeof lesson.mainContent === 'object' ? JSON.stringify(lesson.mainContent) : ''),
+                lessonContent: typeof lesson.lessonContent === 'string' ? lesson.lessonContent :
+                    (typeof lesson.mainContent === 'string' ? lesson.mainContent : ''),
                 examples: lesson.examples || [],
                 keyPoints: lesson.keyPoints || [],
                 terminology: lesson.terminology || [],
                 practiceActivity: lesson.practiceActivity || {},
-                summary: lesson.summary || '',
+                summary: typeof lesson.summary === 'string' ? lesson.summary : '',
                 commonMisconceptions: lesson.commonMisconceptions || []
             })),
             assessment: {
@@ -647,18 +784,24 @@ Return ONLY this JSON structure (no explanations, no markdown, valid JSON only):
     /**
      * Call Gemini API with timeout, retry logic, error handling, and caching
      * ⚡ MUCH FASTER: caches responses by prompt hash to avoid re-requesting identical prompts
+     * ⚡ GROQ FALLBACK: Automatically switches to Groq when Gemini quota exceeded
      */
     async callGeminiAPI(prompt, operationName = 'API Call') {
         // ⚡ Check cache first
         const cached = this.getCachedResponse(prompt);
         if (cached) return cached;
 
+        // ⚡ If Gemini quota exceeded, use Groq directly
+        if (this.useGroqFallback) {
+            return this.callGroqAPI(prompt, operationName);
+        }
+
         let lastError = null;
         const startTime = Date.now();
         
         for (let attempt = 1; attempt <= this.config.maxRetries; attempt++) {
             try {
-                console.log(`   ⏱️  ${operationName} (attempt ${attempt}/${this.config.maxRetries})...`);
+                console.log(`   ⏱️  ${operationName} [Gemini] (attempt ${attempt}/${this.config.maxRetries})...`);
                 
                 const response = await Promise.race([
                     this.model.generateContent(prompt),
@@ -688,16 +831,16 @@ Return ONLY this JSON structure (no explanations, no markdown, valid JSON only):
                 lastError = error;
                 console.error(`   ⚠️  ${operationName} failed: ${error.message}`);
                 
-                // Handle rate limiting
-                if (error.message.includes('429') || error.message.includes('quota')) {
-                    if (error.message.includes('PerDay')) {
-                        throw new Error('QUOTA_EXCEEDED: Daily API limit reached. Please try again tomorrow or use a different API key.');
-                    }
+                // Handle rate limiting / quota exceeded - FALLBACK TO GROQ
+                if (error.message.includes('429') || error.message.includes('quota') || error.message.includes('Quota')) {
+                    console.log(`   🔄 Gemini quota exceeded, switching to Groq fallback...`);
                     
-                    const waitTime = Math.pow(2, attempt) * 10000; // Exponential backoff
-                    console.log(`   ⏳ Rate limited. Waiting ${waitTime/1000}s...`);
-                    await new Promise(resolve => setTimeout(resolve, waitTime));
-                    continue;
+                    if (this.groqClient) {
+                        this.useGroqFallback = true;
+                        return this.callGroqAPI(prompt, operationName);
+                    } else {
+                        throw new Error('QUOTA_EXCEEDED: Daily Gemini API limit reached and no Groq API key configured. Please add GROQ_API_KEY to .env or try again tomorrow.');
+                    }
                 }
                 
                 // Handle auth errors
@@ -715,6 +858,80 @@ Return ONLY this JSON structure (no explanations, no markdown, valid JSON only):
         }
         
         throw new Error(`${operationName} failed after ${this.config.maxRetries} attempts: ${lastError?.message}`);
+    }
+
+    /**
+     * ⚡ GROQ FALLBACK: Call Groq API when Gemini quota is exceeded
+     */
+    async callGroqAPI(prompt, operationName = 'API Call') {
+        if (!this.groqClient) {
+            throw new Error('Groq client not initialized. Please add GROQ_API_KEY to .env');
+        }
+
+        const startTime = Date.now();
+        
+        for (let attempt = 1; attempt <= this.config.maxRetries; attempt++) {
+            try {
+                console.log(`   ⏱️  ${operationName} [Groq/${this.groqModel}] (attempt ${attempt}/${this.config.maxRetries})...`);
+                
+                const response = await Promise.race([
+                    this.groqClient.chat.completions.create({
+                        model: this.groqModel,
+                        messages: [
+                            {
+                                role: 'system',
+                                content: 'You are an expert educational content designer. Always respond with valid JSON only, no markdown code blocks or explanations.'
+                            },
+                            {
+                                role: 'user',
+                                content: prompt
+                            }
+                        ],
+                        temperature: 0.7,
+                        max_tokens: 8000
+                    }),
+                    new Promise((_, reject) =>
+                        setTimeout(
+                            () => reject(new Error(`Timeout after ${this.config.timeoutMs}ms`)), 
+                            this.config.timeoutMs
+                        )
+                    )
+                ]);
+                
+                const text = response.choices[0]?.message?.content?.trim() || '';
+                
+                if (!text || text.length === 0) {
+                    throw new Error('Empty response from Groq API');
+                }
+                
+                const elapsed = Date.now() - startTime;
+                console.log(`   ✅ ${operationName} [Groq] completed (${text.length} chars, ${elapsed}ms)`);
+                
+                // ⚡ Cache the response
+                this.setCachedResponse(prompt, text);
+                
+                return text;
+                
+            } catch (error) {
+                console.error(`   ⚠️  ${operationName} [Groq] failed: ${error.message}`);
+                
+                // Handle Groq rate limiting
+                if (error.message.includes('429') || error.message.includes('rate')) {
+                    const waitTime = Math.pow(2, attempt) * 5000;
+                    console.log(`   ⏳ Groq rate limited. Waiting ${waitTime/1000}s...`);
+                    await new Promise(resolve => setTimeout(resolve, waitTime));
+                    continue;
+                }
+                
+                if (attempt < this.config.maxRetries) {
+                    const backoffTime = Math.pow(2, attempt) * 2000;
+                    console.log(`   ⏳ Retrying Groq in ${backoffTime/1000}s...`);
+                    await new Promise(resolve => setTimeout(resolve, backoffTime));
+                } else {
+                    throw new Error(`${operationName} [Groq] failed after ${this.config.maxRetries} attempts: ${error.message}`);
+                }
+            }
+        }
     }
 
     /**
@@ -872,9 +1089,9 @@ Return ONLY this JSON structure (no explanations, no markdown, valid JSON only):
         console.log(`   Sections: ${processed.statistics.totalSections}`);
         console.log(`   Est. Reading Time: ${processed.statistics.estimatedReadingTime}`);
 
-        // Determine number of phases based on content size and learner level
-        const numPhases = learnerLevel === 'beginner' ? 3 : 
-                         learnerLevel === 'intermediate' ? 3 : 4;
+        // ⚡ OPTIMIZED: Reduced phases for faster generation
+        // 2 phases for beginner/intermediate, 3 for advanced (faster than before)
+        const numPhases = learnerLevel === 'advanced' ? 3 : 2;
 
         // STEP 1: Course Analysis
         console.log('\n' + '─'.repeat(50));
@@ -1036,7 +1253,8 @@ Return ONLY this JSON structure (no explanations, no markdown, valid JSON only):
         console.log(`📅 Completed: ${new Date().toISOString()}`);
         console.log('═'.repeat(70) + '\n');
 
-        return roadmap;
+        // ⚡ CRITICAL: Sanitize roadmap data to match Mongoose schema before returning
+        return this.sanitizeRoadmapForSchema(roadmap);
     }
 
     /**

@@ -156,7 +156,7 @@ exports.processPDF = async (req, res) => {
 
             if (processingType === 'quiz' || processingType === 'comprehensive') {
                 console.log('🎯 Generating quiz...');
-                results.quizzes = await processor.generateQuiz(pdfText, 5);
+                results.quizzes = await processor.generateQuiz(pdfText, 15);
             }
 
             if (processingType === 'roadmap') {

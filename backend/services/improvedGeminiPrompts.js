@@ -971,7 +971,7 @@ Return ONLY this JSON:
      */
     static generateQuizQuestionsPrompt(topics, content, difficultyLevel = 'medium') {
         const topicsList = Array.isArray(topics) ? topics.join(', ') : topics;
-        const questionCount = difficultyLevel === 'medium' ? '8-10' : '5-7';
+        const questionCount = '15';
         
         return `Create ${questionCount} quiz questions for assessing these topics: ${topicsList}
 

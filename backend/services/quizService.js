@@ -1,9 +1,11 @@
 /**
  * Quiz Service
  * Generates quizzes with MCQs for each module and phase
+ * ⚡ GROQ FALLBACK: Automatically switches to Groq when Gemini quota exceeded
  */
 
 const { GoogleGenerativeAI } = require('@google/generative-ai');
+const Groq = require('groq-sdk');
 
 class QuizService {
     constructor(apiKey) {
@@ -14,10 +16,16 @@ class QuizService {
         // Use gemini-1.5-flash as default - it's free and reliable
         this.modelName = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
         this.model = this.genAI.getGenerativeModel({ model: this.modelName });
+        
+        // ⚡ Initialize Groq as fallback
+        this.groqApiKey = process.env.GROQ_API_KEY;
+        this.groqModel = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
+        this.groqClient = this.groqApiKey ? new Groq({ apiKey: this.groqApiKey }) : null;
+        this.useGroqFallback = false;
     }
 
     /**
-     * Generate MCQ quiz for a module (10-15 questions)
+     * Generate MCQ quiz for a module (15 questions)
      * @param {Object} module - Module object with name and topics
      * @param {Array} topicsCovered - Topics covered in this module
      * @param {string} phaseObjective - The objective of the phase
@@ -41,7 +49,7 @@ Module: ${module.moduleTitle}
 Topics to cover: ${topicsCovered.join(', ')}
 Learning Objective: ${phaseObjective}
 
-TASK: Generate 10-12 multiple choice questions that test understanding of the ACTUAL CONTENT from the study material above. Questions should be specific to the material, not generic.
+TASK: Generate 15 multiple choice questions that test understanding of the ACTUAL CONTENT from the study material above. Questions should be specific to the material, not generic.
 
 Format strictly as JSON array:
 [
@@ -57,9 +65,9 @@ Format strictly as JSON array:
 ]
 
 Requirements:
-- 10-12 questions total
+- 15 questions total
 - Questions must be based on ACTUAL content from the study material
-- Mix difficulty: 3-4 easy, 4-5 medium, 2-3 hard
+- Mix difficulty: 5 easy, 6 medium, 4 hard
 - Each question tests specific concepts from the material
 - Options must be plausible and one must match correctAnswer exactly
 - Explanations should reference the study material
@@ -126,7 +134,7 @@ SPECIFIC TOPICS FOR THIS PHASE: ${topicsList}
 
 IMPORTANT: Generate questions ONLY about the specific topics listed above. These topics are unique to this phase and should not overlap with other phases.
 
-TASK: Generate 10 multiple choice questions that test understanding of the SPECIFIC TOPICS listed above, using content from the study material.
+TASK: Generate 15 multiple choice questions that test understanding of the SPECIFIC TOPICS listed above, using content from the study material.
 
 Format strictly as JSON array:
 [
@@ -142,10 +150,10 @@ Format strictly as JSON array:
 ]
 
 Requirements:
-- 10 questions total
+- 15 questions total
 - Questions MUST be about the SPECIFIC TOPICS listed: ${topicsList}
 - Each question's "topic" field must match one of the phase topics
-- Difficulty distribution: 3 easy, 4 medium, 3 hard
+- Difficulty distribution: 5 easy, 6 medium, 4 hard
 - Test understanding based on the study material content
 - Options must be plausible with one correct answer
 - Explanations should reference the study material
@@ -278,9 +286,14 @@ Return ONLY valid JSON array, no other text.`;
     }
 
     /**
-     * Helper function to call API with timeout
+     * Helper function to call API with timeout and Groq fallback
      */
     async getContentWithTimeout(prompt, timeoutMs = 30000) {
+        // ⚡ If already switched to Groq, use it directly
+        if (this.useGroqFallback && this.groqClient) {
+            return this.callGroqAPI(prompt, timeoutMs);
+        }
+
         try {
             return await Promise.race([
                 this.model.generateContent(prompt).then(result => result.response.text().trim()),
@@ -290,6 +303,49 @@ Return ONLY valid JSON array, no other text.`;
             ]);
         } catch (error) {
             console.error('Gemini API error:', error.message);
+            
+            // ⚡ Check for quota exceeded - switch to Groq
+            if (error.message.includes('429') || error.message.includes('quota') || error.message.includes('Quota')) {
+                console.log('🔄 Gemini quota exceeded, switching to Groq fallback...');
+                if (this.groqClient) {
+                    this.useGroqFallback = true;
+                    return this.callGroqAPI(prompt, timeoutMs);
+                }
+            }
+            throw error;
+        }
+    }
+
+    /**
+     * ⚡ Call Groq API as fallback
+     */
+    async callGroqAPI(prompt, timeoutMs = 30000) {
+        if (!this.groqClient) {
+            throw new Error('Groq client not initialized');
+        }
+
+        try {
+            const response = await Promise.race([
+                this.groqClient.chat.completions.create({
+                    model: this.groqModel,
+                    messages: [
+                        {
+                            role: 'system',
+                            content: 'You are an expert quiz generator. Always respond with valid JSON arrays only, no markdown or explanations.'
+                        },
+                        { role: 'user', content: prompt }
+                    ],
+                    temperature: 0.7,
+                    max_tokens: 4000
+                }),
+                new Promise((_, reject) => 
+                    setTimeout(() => reject(new Error('Groq API timeout')), timeoutMs)
+                )
+            ]);
+
+            return response.choices[0]?.message?.content?.trim() || '';
+        } catch (error) {
+            console.error('Groq API error:', error.message);
             throw error;
         }
     }
@@ -377,6 +433,146 @@ Return ONLY valid JSON array, no other text.`;
                 explanation: 'Active practice and hands-on experience are the most effective ways to master any subject.',
                 difficulty: 'easy',
                 topic: 'Learning Strategy'
+            },
+            {
+                questionId: 'q_6',
+                questionText: `What are the key components of ${term1}?`,
+                options: [
+                    'Core principles, methods, and applications',
+                    'Only theoretical concepts',
+                    'Historical background only',
+                    'None of the above'
+                ],
+                correctAnswer: 'Core principles, methods, and applications',
+                explanation: `${term1} encompasses core principles, methodologies, and their practical applications.`,
+                difficulty: 'medium',
+                topic: term1
+            },
+            {
+                questionId: 'q_7',
+                questionText: `How can ${term2} be applied in real-world scenarios?`,
+                options: [
+                    'Through practical implementation and problem-solving',
+                    'Only in academic settings',
+                    'It cannot be applied practically',
+                    'Through memorization only'
+                ],
+                correctAnswer: 'Through practical implementation and problem-solving',
+                explanation: `${term2} has direct applications in solving real-world problems and challenges.`,
+                difficulty: 'medium',
+                topic: term2
+            },
+            {
+                questionId: 'q_8',
+                questionText: `What is the relationship between ${term1} and ${term3}?`,
+                options: [
+                    'They are interconnected and complement each other',
+                    'They are completely independent',
+                    'One contradicts the other',
+                    'No relationship exists'
+                ],
+                correctAnswer: 'They are interconnected and complement each other',
+                explanation: `${term1} and ${term3} work together to provide a comprehensive understanding of the subject.`,
+                difficulty: 'hard',
+                topic: term3
+            },
+            {
+                questionId: 'q_9',
+                questionText: `What is a common misconception about ${mainTopic}?`,
+                options: [
+                    'That it requires only memorization without understanding',
+                    'That practice is necessary',
+                    'That concepts build on each other',
+                    'That application matters'
+                ],
+                correctAnswer: 'That it requires only memorization without understanding',
+                explanation: 'A common misconception is that subjects can be mastered through memorization alone, when understanding is crucial.',
+                difficulty: 'medium',
+                topic: mainTopic
+            },
+            {
+                questionId: 'q_10',
+                questionText: `What advanced concepts build upon ${term1}?`,
+                options: [
+                    'Higher-level theories and complex applications',
+                    'Basic definitions only',
+                    'Unrelated topics',
+                    'No advanced concepts exist'
+                ],
+                correctAnswer: 'Higher-level theories and complex applications',
+                explanation: `Understanding ${term1} forms the foundation for more advanced theories and complex applications.`,
+                difficulty: 'hard',
+                topic: term1
+            },
+            {
+                questionId: 'q_11',
+                questionText: `What skills are developed when studying ${term2}?`,
+                options: [
+                    'Critical thinking and analytical abilities',
+                    'Only memorization skills',
+                    'Physical skills only',
+                    'No skills are developed'
+                ],
+                correctAnswer: 'Critical thinking and analytical abilities',
+                explanation: `Studying ${term2} develops critical thinking and analytical skills essential for problem-solving.`,
+                difficulty: 'medium',
+                topic: term2
+            },
+            {
+                questionId: 'q_12',
+                questionText: `How does ${mainTopic} contribute to overall learning?`,
+                options: [
+                    'Provides foundational knowledge for advanced studies',
+                    'Has no contribution',
+                    'Only useful for exams',
+                    'Limited to theory only'
+                ],
+                correctAnswer: 'Provides foundational knowledge for advanced studies',
+                explanation: `${mainTopic} provides essential foundational knowledge that supports advanced learning.`,
+                difficulty: 'easy',
+                topic: mainTopic
+            },
+            {
+                questionId: 'q_13',
+                questionText: `What is the most effective way to review ${term3}?`,
+                options: [
+                    'Active recall and spaced repetition',
+                    'Reading notes once',
+                    'Skipping review entirely',
+                    'Passive observation'
+                ],
+                correctAnswer: 'Active recall and spaced repetition',
+                explanation: 'Active recall and spaced repetition are scientifically proven methods for effective learning retention.',
+                difficulty: 'easy',
+                topic: term3
+            },
+            {
+                questionId: 'q_14',
+                questionText: `What challenges might one face when learning ${mainTopic}?`,
+                options: [
+                    'Connecting theory to practice and building intuition',
+                    'Finding resources is impossible',
+                    'No challenges exist',
+                    'The topic is too simple'
+                ],
+                correctAnswer: 'Connecting theory to practice and building intuition',
+                explanation: 'Common challenges include bridging theoretical knowledge with practical application and developing intuition.',
+                difficulty: 'hard',
+                topic: mainTopic
+            },
+            {
+                questionId: 'q_15',
+                questionText: `How can you verify your understanding of ${term1}?`,
+                options: [
+                    'By explaining it to others and solving problems',
+                    'By re-reading the same material',
+                    'By waiting for test results',
+                    'Understanding cannot be verified'
+                ],
+                correctAnswer: 'By explaining it to others and solving problems',
+                explanation: 'Teaching others and applying knowledge to problems are effective ways to verify understanding.',
+                difficulty: 'hard',
+                topic: term1
             }
         ];
     }
@@ -505,6 +701,51 @@ Return ONLY valid JSON array, no other text.`;
                 explanation: 'Concepts typically build upon each other in a structured curriculum.',
                 difficulty: 'hard',
                 topic: topicName
+            },
+            {
+                questionId: 'q_11',
+                questionText: `What is a key principle of ${topicName} that should be understood first?`,
+                options: ['Foundational concepts and definitions', 'Advanced applications', 'Historical context only', 'None of the above'],
+                correctAnswer: 'Foundational concepts and definitions',
+                explanation: 'Starting with foundational concepts ensures a solid base for advanced learning.',
+                difficulty: 'easy',
+                topic: topicName
+            },
+            {
+                questionId: 'q_12',
+                questionText: `How does practice enhance understanding of ${topicName}?`,
+                options: ['Reinforces concepts and reveals gaps', 'Has no effect', 'Only useful for exams', 'Slows down learning'],
+                correctAnswer: 'Reinforces concepts and reveals gaps',
+                explanation: 'Active practice reinforces learning and helps identify areas needing more attention.',
+                difficulty: 'medium',
+                topic: 'Learning Strategy'
+            },
+            {
+                questionId: 'q_13',
+                questionText: 'What approach maximizes retention of learned material?',
+                options: ['Spaced repetition and active recall', 'Cramming before assessment', 'Passive reading', 'Highlighting text'],
+                correctAnswer: 'Spaced repetition and active recall',
+                explanation: 'Spaced repetition and active recall are proven techniques for long-term retention.',
+                difficulty: 'medium',
+                topic: 'Learning Strategy'
+            },
+            {
+                questionId: 'q_14',
+                questionText: `What is the most important outcome of mastering ${topicName}?`,
+                options: ['Ability to apply knowledge independently', 'Completing assessments', 'Memorizing definitions', 'Reading all materials'],
+                correctAnswer: 'Ability to apply knowledge independently',
+                explanation: 'True mastery means being able to apply knowledge independently in various contexts.',
+                difficulty: 'hard',
+                topic: topicName
+            },
+            {
+                questionId: 'q_15',
+                questionText: 'How can collaboration enhance learning in this phase?',
+                options: ['Through discussion and peer teaching', 'It has no benefit', 'Only for social purposes', 'Slows individual progress'],
+                correctAnswer: 'Through discussion and peer teaching',
+                explanation: 'Collaborative learning through discussion and teaching others deepens understanding.',
+                difficulty: 'medium',
+                topic: 'Learning Strategy'
             }
         ];
     }

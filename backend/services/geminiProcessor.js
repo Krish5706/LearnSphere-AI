@@ -1,9 +1,11 @@
 /**
  * Gemini AI Processing Service
  * Handles all AI-powered content generation for PDFs
+ * ⚡ GROQ FALLBACK: Automatically switches to Groq when Gemini quota exceeded
  */
 
 const { GoogleGenerativeAI } = require('@google/generative-ai');
+const Groq = require('groq-sdk');
 
 class GeminiProcessor {
     constructor(apiKey) {
@@ -15,6 +17,69 @@ class GeminiProcessor {
         // Valid models: gemini-1.5-flash, gemini-1.5-pro, gemini-2.0-flash
         this.modelName = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
         this.model = this.genAI.getGenerativeModel({ model: this.modelName });
+        
+        // ⚡ Initialize Groq as fallback
+        this.groqApiKey = process.env.GROQ_API_KEY;
+        this.groqModel = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
+        this.groqClient = this.groqApiKey ? new Groq({ apiKey: this.groqApiKey }) : null;
+        this.useGroqFallback = false;
+    }
+
+    /**
+     * ⚡ Unified API call with automatic Groq fallback
+     */
+    async callAI(prompt, maxRetries = 2) {
+        // If already switched to Groq, use it directly
+        if (this.useGroqFallback && this.groqClient) {
+            return this.callGroq(prompt);
+        }
+
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+            try {
+                const result = await this.model.generateContent(prompt);
+                return result.response.text();
+            } catch (error) {
+                // Check for quota exceeded - switch to Groq
+                if (error.message.includes('429') || error.message.includes('quota') || error.message.includes('Quota')) {
+                    console.log('🔄 Gemini quota exceeded, switching to Groq fallback...');
+                    if (this.groqClient) {
+                        this.useGroqFallback = true;
+                        return this.callGroq(prompt);
+                    }
+                    throw new Error(`Gemini quota exceeded and no Groq fallback available: ${error.message}`);
+                }
+                
+                if (attempt === maxRetries) {
+                    throw error;
+                }
+                // Wait before retry
+                await new Promise(r => setTimeout(r, 2000 * attempt));
+            }
+        }
+    }
+
+    /**
+     * ⚡ Call Groq API
+     */
+    async callGroq(prompt) {
+        if (!this.groqClient) {
+            throw new Error('Groq client not initialized');
+        }
+        
+        const response = await this.groqClient.chat.completions.create({
+            model: this.groqModel,
+            messages: [
+                {
+                    role: 'system',
+                    content: 'You are an expert educational content designer and summarizer. Respond clearly and helpfully.'
+                },
+                { role: 'user', content: prompt }
+            ],
+            temperature: 0.7,
+            max_tokens: 4000
+        });
+        
+        return response.choices[0]?.message?.content || '';
     }
 
     /**
@@ -25,8 +90,7 @@ class GeminiProcessor {
      */
     async generateSummary(content, type = 'short') {
         const prompts = {
-            short: `You are an expert aca
-            demic content summarizer. Summarize the uploaded PDF content based on SHORT summary length.
+            short: `You are an expert academic content summarizer. Summarize the uploaded PDF content based on SHORT summary length.
 
 Output Requirements:
 - Use Markdown for formatting.
@@ -52,8 +116,7 @@ Content:\n${content}`
         };
 
         try {
-            const result = await this.model.generateContent(prompts[type] || prompts.short);
-            return result.response.text();
+            return await this.callAI(prompts[type] || prompts.short);
         } catch (error) {
             throw new Error(`Failed to generate ${type} summary: ${error.message}`);
         }
@@ -62,10 +125,10 @@ Content:\n${content}`
     /**
      * Generate quiz questions with multiple choice
      * @param {string} content - The PDF content
-     * @param {number} count - Number of questions (default: 5)
+     * @param {number} count - Number of questions (default: 15)
      * @returns {Promise<Array>} - Array of quiz questions
      */
-    async generateQuiz(content, count = 5) {
+    async generateQuiz(content, count = 15) {
         const prompt = `Generate exactly ${count} multiple-choice quiz questions based on this content. 
         
         Return a valid JSON array with this structure:
@@ -85,8 +148,7 @@ Content:\n${content}`
         Content:\n${content}`;
 
         try {
-            const result = await this.model.generateContent(prompt);
-            let textResponse = result.response.text();
+            let textResponse = await this.callAI(prompt);
             const jsonMatch = textResponse.match(/\[[\s\S]*\]/);
             if (!jsonMatch) {
                 throw new Error('No valid JSON found in response');
@@ -117,8 +179,7 @@ Content:\n${content}`
         Content:\n${content}`;
 
         try {
-            const result = await this.model.generateContent(prompt);
-            let textResponse = result.response.text();
+            let textResponse = await this.callAI(prompt);
             const jsonMatch = textResponse.match(/\[[\s\S]*\]/);
             if (!jsonMatch) {
                 throw new Error('No valid JSON found in response');
@@ -161,8 +222,7 @@ Content:\n${content}`
             Return ONLY valid JSON, no additional text.`;
 
             try {
-                const result = await this.model.generateContent(focusPrompt);
-                let textResponse = result.response.text();
+                let textResponse = await this.callAI(focusPrompt);
                 const jsonMatch = textResponse.match(/\[[\s\S]*\]/);
                 if (jsonMatch) {
                     const cleanJson = jsonMatch[0].replace(/```json|```/gi, '').trim();
@@ -380,8 +440,7 @@ Return a valid JSON array with this structure:
 Content:\n${content}`;
 
         try {
-            const result = await this.model.generateContent(prompt);
-            let textResponse = result.response.text();
+            let textResponse = await this.callAI(prompt);
             const jsonMatch = textResponse.match(/\[[\s\S]*\]/);
             if (!jsonMatch) {
                 throw new Error('No valid JSON found in response');
