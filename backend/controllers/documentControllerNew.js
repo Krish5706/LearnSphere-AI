@@ -172,60 +172,76 @@ exports.processPDF = async (req, res) => {
                     );
                     console.log('✅ Enhanced roadmap with detailed lessons generated successfully');
                     
-                    // Pre-generate quizzes for each phase
-                    console.log('📝 Pre-generating phase quizzes...');
+                    // Pre-generate DYNAMIC quizzes for each phase based on document content
+                    console.log('📝 Pre-generating DYNAMIC content-based phase quizzes...');
                     const quizService = new QuizService(process.env.GEMINI_API_KEY);
                     const preGeneratedQuizzes = [];
                     
                     if (results.enhancedRoadmap?.phases) {
                         for (const [phaseIdx, phase] of results.enhancedRoadmap.phases.entries()) {
                             try {
-                                console.log(`📚 Generating quiz for phase: ${phase.phaseName}`);
+                                console.log(`📚 Generating DYNAMIC quiz for phase: ${phase.phaseName}`);
                                 
-                                // Get all topics from this phase's modules
-                                const allTopicsInPhase = phase.modules?.flatMap(m => m.topicsCovered || []) || [];
+                                // Get all topics from this phase - prioritize phase-specific topics
+                                let allTopicsInPhase = [];
+                                if (phase.phaseTopics && phase.phaseTopics.length > 0) {
+                                    allTopicsInPhase = phase.phaseTopics.map(t => t.name || t);
+                                } else {
+                                    allTopicsInPhase = phase.modules?.flatMap(m => m.topicsCovered || []) || [];
+                                }
                                 
-                                // Generate quiz questions using PDF content
+                                // Generate quiz questions using PDF content - DYNAMIC generation
                                 const questions = await quizService.generatePhaseQuiz(
-                                    { phaseName: phase.phaseName, phaseObjective: phase.phaseObjective },
-                                    results.enhancedRoadmap.subTopics || [],
+                                    { 
+                                        phaseName: phase.phaseName, 
+                                        phaseObjective: phase.phaseObjective,
+                                        phaseTopics: phase.phaseTopics || allTopicsInPhase.map(name => ({ name }))
+                                    },
+                                    results.enhancedRoadmap.subTopics || allTopicsInPhase,
                                     phase.modules || [],
                                     pdfText
                                 );
                                 
-                                // Create quiz record in database
-                                const quiz = await Quiz.create({
-                                    user: req.user._id,
-                                    quizTitle: `${phase.phaseName} - Comprehensive Assessment`,
-                                    quizType: 'phase-quiz',
-                                    roadmapId: documentId,
-                                    phaseId: phase.phaseId,
-                                    phaseNumber: phaseIdx + 1,
-                                    phaseName: phase.phaseName,
-                                    moduleId: null,
-                                    moduleName: null,
-                                    topicsCovered: allTopicsInPhase,
-                                    questions,
-                                    totalQuestions: questions.length,
-                                    status: 'not-started'
-                                });
-                                
-                                preGeneratedQuizzes.push({
-                                    phaseId: phase.phaseId,
-                                    quizId: quiz._id,
-                                    totalQuestions: questions.length
-                                });
-                                
-                                console.log(`✅ Generated ${questions.length} questions for ${phase.phaseName}`);
+                                // Only save if we got valid content-specific questions
+                                if (questions.length >= 10) {
+                                    // Create quiz record in database
+                                    const quiz = await Quiz.create({
+                                        user: req.user._id,
+                                        quizTitle: `${phase.phaseName} - Comprehensive Assessment`,
+                                        quizType: 'phase-quiz',
+                                        roadmapId: documentId,
+                                        phaseId: phase.phaseId,
+                                        phaseNumber: phaseIdx + 1,
+                                        phaseName: phase.phaseName,
+                                        moduleId: null,
+                                        moduleName: null,
+                                        topicsCovered: allTopicsInPhase,
+                                        questions,
+                                        totalQuestions: questions.length,
+                                        status: 'not-started',
+                                        generatedAt: new Date(),
+                                        isContentBased: true // Flag to indicate this is dynamic content-based quiz
+                                    });
+                                    
+                                    preGeneratedQuizzes.push({
+                                        phaseId: phase.phaseId,
+                                        quizId: quiz._id,
+                                        totalQuestions: questions.length
+                                    });
+                                    
+                                    console.log(`✅ Generated ${questions.length} content-specific questions for ${phase.phaseName}`);
+                                } else {
+                                    console.warn(`⚠️ Only got ${questions.length} questions for ${phase.phaseName}, will generate on-demand`);
+                                }
                             } catch (quizError) {
                                 console.error(`⚠️ Failed to pre-generate quiz for ${phase.phaseName}:`, quizError.message);
-                                // Continue with other phases even if one fails
+                                // Continue with other phases - quiz will be generated on-demand when user visits
                             }
                         }
                     }
                     
                     results.preGeneratedQuizzes = preGeneratedQuizzes;
-                    console.log(`✅ Pre-generated ${preGeneratedQuizzes.length} phase quizzes`);
+                    console.log(`✅ Pre-generated ${preGeneratedQuizzes.length} DYNAMIC phase quizzes`);
                     
                 } catch (roadmapError) {
                     console.error('❌ Roadmap generation error:', roadmapError.message);

@@ -1,6 +1,7 @@
 /**
  * Quiz Controller
  * Handles quiz operations: creation, retrieval, submission, and scoring
+ * All quizzes are dynamically generated from document content - NO static templates
  */
 
 const Quiz = require('../models/Quiz');
@@ -12,7 +13,7 @@ const QuizService = require('../services/quizService');
 const quizService = new QuizService(process.env.GEMINI_API_KEY);
 
 /**
- * Create quiz for a module
+ * Create DYNAMIC quiz for a module based on document content
  * POST /api/quizzes/module
  */
 exports.createModuleQuiz = async (req, res) => {
@@ -28,9 +29,9 @@ exports.createModuleQuiz = async (req, res) => {
             });
         }
 
-        console.log(`🎯 Creating module quiz for: ${moduleName}`);
+        console.log(`🎯 Creating DYNAMIC module quiz for: ${moduleName}`);
 
-        // Get document content if not provided
+        // Document content is REQUIRED for dynamic quiz generation
         let pdfContent = documentContent || '';
         if (!pdfContent) {
             try {
@@ -38,13 +39,32 @@ exports.createModuleQuiz = async (req, res) => {
                 if (document && document.pdfMetadata && document.pdfMetadata.extractedText) {
                     pdfContent = document.pdfMetadata.extractedText;
                     console.log(`📄 Using PDF content (${pdfContent.length} chars)`);
+                } else {
+                    return res.status(400).json({
+                        success: false,
+                        message: 'Document content not found. Cannot generate quiz without content.'
+                    });
                 }
             } catch (docErr) {
-                console.log('⚠️ Could not fetch document content:', docErr.message);
+                console.error('⚠️ Could not fetch document content:', docErr.message);
+                return res.status(400).json({
+                    success: false,
+                    message: 'Failed to retrieve document content for quiz generation.'
+                });
             }
         }
 
-        // Generate quiz questions
+        // Verify we have sufficient content
+        if (pdfContent.length < 500) {
+            return res.status(400).json({
+                success: false,
+                message: 'Document content is too short for quiz generation. Please upload a more detailed document.'
+            });
+        }
+
+        const startTime = Date.now();
+
+        // Generate DYNAMIC quiz questions from document content
         const module = { moduleTitle: moduleName };
         const questions = await quizService.generateModuleQuiz(
             module, 
@@ -53,7 +73,7 @@ exports.createModuleQuiz = async (req, res) => {
             pdfContent
         );
 
-        // Create quiz document
+        // Create quiz document with metadata
         const quiz = await Quiz.create({
             user: userId,
             quizTitle: `${moduleName} Quiz`,
@@ -67,17 +87,28 @@ exports.createModuleQuiz = async (req, res) => {
             topicsCovered: topicsCovered || [],
             questions,
             totalQuestions: questions.length,
-            status: 'not-started'
+            status: 'not-started',
+            isContentBased: true,
+            generatedAt: new Date(),
+            generationMetadata: {
+                documentLength: pdfContent.length,
+                topicsUsed: topicsCovered || [],
+                generationTime: Date.now() - startTime,
+                aiModel: process.env.GEMINI_MODEL || 'gemini-2.0-flash'
+            }
         });
+
+        console.log(`✅ Generated ${questions.length} content-specific module questions in ${Date.now() - startTime}ms`);
 
         res.status(201).json({
             success: true,
-            message: 'Module quiz created successfully',
+            message: 'Dynamic module quiz created successfully',
             data: {
                 quizId: quiz._id,
                 quizTitle: quiz.quizTitle,
                 quizType: quiz.quizType,
                 totalQuestions: quiz.totalQuestions,
+                isContentBased: true,
                 questions: questions.map(q => ({
                     questionId: q.questionId,
                     questionText: q.questionText,
@@ -92,14 +123,14 @@ exports.createModuleQuiz = async (req, res) => {
         console.error('❌ Error creating module quiz:', error);
         res.status(500).json({
             success: false,
-            message: 'Failed to create module quiz',
+            message: 'Failed to create dynamic module quiz. Please try again.',
             error: error.message
         });
     }
 };
 
 /**
- * Create phase-end quiz covering all topics in phase
+ * Create DYNAMIC phase-end quiz covering all topics in phase
  * POST /api/quizzes/phase
  */
 exports.createPhaseQuiz = async (req, res) => {
@@ -114,29 +145,47 @@ exports.createPhaseQuiz = async (req, res) => {
             });
         }
 
-        console.log(`📚 Creating phase quiz for: ${phaseName}`);
+        console.log(`📚 Creating DYNAMIC phase quiz for: ${phaseName}`);
         console.log(`   Topics for this phase: ${allTopicsInPhase?.join(', ') || 'none specified'}`);
 
-        // Get document content if not provided
+        // Document content is REQUIRED for dynamic quiz generation
         let pdfContent = documentContent || '';
         if (!pdfContent) {
             try {
-                // roadmapId might be the document ID
                 const document = await Document.findById(roadmapId);
                 if (document && document.pdfMetadata && document.pdfMetadata.extractedText) {
                     pdfContent = document.pdfMetadata.extractedText;
                     console.log(`📄 Using PDF content (${pdfContent.length} chars)`);
+                } else {
+                    return res.status(400).json({
+                        success: false,
+                        message: 'Document content not found. Cannot generate quiz without content.'
+                    });
                 }
             } catch (docErr) {
-                console.log('⚠️ Could not fetch document content:', docErr.message);
+                console.error('⚠️ Could not fetch document content:', docErr.message);
+                return res.status(400).json({
+                    success: false,
+                    message: 'Failed to retrieve document content for quiz generation.'
+                });
             }
         }
+
+        // Verify sufficient content
+        if (pdfContent.length < 500) {
+            return res.status(400).json({
+                success: false,
+                message: 'Document content is too short for quiz generation.'
+            });
+        }
+
+        const startTime = Date.now();
 
         // Build phase object with phase-specific topics
         const phase = { 
             phaseName, 
             phaseObjective,
-            phaseTopics: phaseTopics || [] // Pass full topic objects for better quiz generation
+            phaseTopics: phaseTopics || allTopicsInPhase?.map(name => ({ name })) || []
         };
         
         const questions = await quizService.generatePhaseQuiz(
@@ -159,17 +208,28 @@ exports.createPhaseQuiz = async (req, res) => {
             topicsCovered: allTopicsInPhase || [],
             questions,
             totalQuestions: questions.length,
-            status: 'not-started'
+            status: 'not-started',
+            isContentBased: true,
+            generatedAt: new Date(),
+            generationMetadata: {
+                documentLength: pdfContent.length,
+                topicsUsed: allTopicsInPhase || [],
+                generationTime: Date.now() - startTime,
+                aiModel: process.env.GEMINI_MODEL || 'gemini-2.0-flash'
+            }
         });
+
+        console.log(`✅ Generated ${questions.length} content-specific phase questions in ${Date.now() - startTime}ms`);
 
         res.status(201).json({
             success: true,
-            message: 'Phase quiz created successfully',
+            message: 'Dynamic phase quiz created successfully',
             data: {
                 quizId: quiz._id,
                 quizTitle: quiz.quizTitle,
                 quizType: quiz.quizType,
                 totalQuestions: quiz.totalQuestions,
+                isContentBased: true,
                 questions: questions.map(q => ({
                     questionId: q.questionId,
                     questionText: q.questionText,
@@ -183,20 +243,20 @@ exports.createPhaseQuiz = async (req, res) => {
         console.error('❌ Error creating phase quiz:', error);
         res.status(500).json({
             success: false,
-            message: 'Failed to create phase quiz',
+            message: 'Failed to create dynamic phase quiz. Please try again.',
             error: error.message
         });
     }
 };
 
 /**
- * Create final comprehensive quiz
+ * Create DYNAMIC final comprehensive quiz
  * POST /api/quizzes/final
  */
 exports.createFinalQuiz = async (req, res) => {
     try {
         const userId = req.user.id;
-        const { roadmapId, allPhases, allTopics } = req.body;
+        const { roadmapId, allPhases, allTopics, documentContent } = req.body;
 
         if (!roadmapId) {
             return res.status(400).json({
@@ -205,11 +265,37 @@ exports.createFinalQuiz = async (req, res) => {
             });
         }
 
-        console.log('🏆 Creating final comprehensive quiz');
+        console.log('🏆 Creating DYNAMIC final comprehensive quiz');
+
+        // Document content is REQUIRED for dynamic quiz generation
+        let pdfContent = documentContent || '';
+        if (!pdfContent) {
+            try {
+                const document = await Document.findById(roadmapId);
+                if (document && document.pdfMetadata && document.pdfMetadata.extractedText) {
+                    pdfContent = document.pdfMetadata.extractedText;
+                    console.log(`📄 Using PDF content (${pdfContent.length} chars)`);
+                } else {
+                    return res.status(400).json({
+                        success: false,
+                        message: 'Document content not found. Cannot generate quiz without content.'
+                    });
+                }
+            } catch (docErr) {
+                console.error('⚠️ Could not fetch document content:', docErr.message);
+                return res.status(400).json({
+                    success: false,
+                    message: 'Failed to retrieve document content for quiz generation.'
+                });
+            }
+        }
+
+        const startTime = Date.now();
 
         const questions = await quizService.generateFinalQuiz(
             allPhases || [],
-            allTopics || []
+            allTopics || [],
+            pdfContent
         );
 
         const quiz = await Quiz.create({
@@ -222,20 +308,31 @@ exports.createFinalQuiz = async (req, res) => {
             phaseName: 'Final Assessment',
             moduleId: null,
             moduleName: null,
-            topicsCovered: (allTopics || []).map(t => t.name),
+            topicsCovered: (allTopics || []).map(t => t.name || t),
             questions,
             totalQuestions: questions.length,
-            status: 'not-started'
+            status: 'not-started',
+            isContentBased: true,
+            generatedAt: new Date(),
+            generationMetadata: {
+                documentLength: pdfContent.length,
+                topicsUsed: (allTopics || []).map(t => t.name || t),
+                generationTime: Date.now() - startTime,
+                aiModel: process.env.GEMINI_MODEL || 'gemini-2.0-flash'
+            }
         });
+
+        console.log(`✅ Generated ${questions.length} content-specific final questions in ${Date.now() - startTime}ms`);
 
         res.status(201).json({
             success: true,
-            message: 'Final quiz created successfully',
+            message: 'Dynamic final quiz created successfully',
             data: {
                 quizId: quiz._id,
                 quizTitle: quiz.quizTitle,
                 quizType: quiz.quizType,
                 totalQuestions: quiz.totalQuestions,
+                isContentBased: true,
                 questions: questions.map(q => ({
                     questionId: q.questionId,
                     questionText: q.questionText,
@@ -249,7 +346,7 @@ exports.createFinalQuiz = async (req, res) => {
         console.error('❌ Error creating final quiz:', error);
         res.status(500).json({
             success: false,
-            message: 'Failed to create final quiz',
+            message: 'Failed to create dynamic final quiz. Please try again.',
             error: error.message
         });
     }

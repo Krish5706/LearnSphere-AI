@@ -115,6 +115,25 @@ const quizSchema = new mongoose.Schema({
         default: 'not-started'
     },
 
+    // Dynamic quiz tracking
+    isContentBased: {
+        type: Boolean,
+        default: true // All new quizzes are content-based (no static templates)
+    },
+
+    generatedAt: {
+        type: Date,
+        default: Date.now
+    },
+
+    // Generation metadata
+    generationMetadata: {
+        documentLength: Number,
+        topicsUsed: [String],
+        generationTime: Number, // milliseconds
+        aiModel: String
+    },
+
     // Timestamps
     createdAt: {
         type: Date,
