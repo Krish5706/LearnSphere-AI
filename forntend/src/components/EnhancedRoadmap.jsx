@@ -162,13 +162,17 @@ const EnhancedRoadmap = ({ enhancedRoadmap, fileName, learnerLevel, documentId, 
         }
     };
 
+    // Generate unique lesson key combining moduleId and lessonId
+    const getLessonKey = (moduleId, lessonId) => `${moduleId}_${lessonId}`;
+
     // Handle marking lesson as complete
     const handleMarkLessonComplete = async (lessonId, phaseId, moduleId) => {
+        const lessonKey = getLessonKey(moduleId, lessonId);
         let updatedLessons;
-        if (completedLessons.includes(lessonId)) {
-            updatedLessons = completedLessons.filter(id => id !== lessonId);
+        if (completedLessons.includes(lessonKey)) {
+            updatedLessons = completedLessons.filter(id => id !== lessonKey);
         } else {
-            updatedLessons = [...completedLessons, lessonId];
+            updatedLessons = [...completedLessons, lessonKey];
         }
         setCompletedLessons(updatedLessons);
 
@@ -176,7 +180,7 @@ const EnhancedRoadmap = ({ enhancedRoadmap, fileName, learnerLevel, documentId, 
         const phase = enhancedRoadmap?.learningPath?.find(p => p.phaseId === phaseId);
         const module = phase?.modules?.find(m => m.moduleId === moduleId);
         if (module) {
-            const moduleLessons = module.lessons?.map(l => l.lessonId) || [];
+            const moduleLessons = module.lessons?.map(l => getLessonKey(moduleId, l.lessonId)) || [];
             const allLessonsComplete = moduleLessons.every(lid => updatedLessons.includes(lid));
             
             if (allLessonsComplete && !completedModules.includes(moduleId)) {
@@ -190,7 +194,7 @@ const EnhancedRoadmap = ({ enhancedRoadmap, fileName, learnerLevel, documentId, 
         if (documentId) {
             try {
                 const result = await roadmapService.updateProgress(documentId, {
-                    lessonId,
+                    lessonId: lessonKey,
                     phaseId,
                     moduleId
                 });
@@ -921,9 +925,10 @@ const EnhancedRoadmap = ({ enhancedRoadmap, fileName, learnerLevel, documentId, 
                                                                         <div className="space-y-2 mt-4">
                                                                             <p className="text-xs font-bold text-slate-900">Lessons:</p>
                                                                             {module.lessons?.map((lesson) => {
-                                                                                const isLessonComplete = completedLessons.includes(lesson.lessonId);
+                                                                                const lessonKey = getLessonKey(module.moduleId, lesson.lessonId);
+                                                                                const isLessonComplete = completedLessons.includes(lessonKey);
                                                                                 return (
-                                                                                    <div key={lesson.lessonId} className={`border rounded-lg overflow-hidden transition-all ${
+                                                                                    <div key={lessonKey} className={`border rounded-lg overflow-hidden transition-all ${
                                                                                         isLessonComplete
                                                                                             ? 'bg-green-50 border-green-200'
                                                                                             : 'bg-white border-slate-200'
@@ -944,10 +949,10 @@ const EnhancedRoadmap = ({ enhancedRoadmap, fileName, learnerLevel, documentId, 
                                                                                                 </div>
                                                                                             </div>
                                                                                             <button
-                                                                                                onClick={() => toggleLesson(lesson.lessonId)}
+                                                                                                onClick={() => toggleLesson(lessonKey)}
                                                                                                 className="flex-shrink-0 p-1 hover:bg-slate-100 rounded transition-all"
                                                                                             >
-                                                                                                {expandedLessons[lesson.lessonId] ? (
+                                                                                                {expandedLessons[lessonKey] ? (
                                                                                                     <ChevronUp size={16} className="text-slate-600" />
                                                                                                 ) : (
                                                                                                     <ChevronDown size={16} className="text-slate-600" />
@@ -956,7 +961,7 @@ const EnhancedRoadmap = ({ enhancedRoadmap, fileName, learnerLevel, documentId, 
                                                                                         </div>
 
                                                                                         {/* Lesson Content */}
-                                                                                        {expandedLessons[lesson.lessonId] && (
+                                                                                        {expandedLessons[lessonKey] && (
                                                                                             <div className="p-4 bg-slate-50 border-t border-slate-200 space-y-4 text-sm">
                                                                                                 {/* Learning Objectives */}
                                                                                                 {lesson.learningObjectives && lesson.learningObjectives.length > 0 && (

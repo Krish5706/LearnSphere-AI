@@ -516,7 +516,8 @@ Return ONLY this JSON structure (no explanations, no markdown, valid JSON only):
             // Explicit dependency list (module ids or names)
             dependencies: moduleData.dependencies || [],
             lessons: lessons.map((lesson, idx) => ({
-                lessonId: lesson.lessonId || `les_${idx + 1}`,
+                // Use moduleId to ensure unique lessonId across all modules
+                lessonId: lesson.lessonId || `les_${moduleData.moduleId || moduleData.moduleNumber}_${idx + 1}`,
                 lessonNumber: lesson.lessonNumber || idx + 1,
                 lessonTitle: lesson.lessonTitle,
                 lessonDuration: lesson.lessonDuration || '20 minutes',
