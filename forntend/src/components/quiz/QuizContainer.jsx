@@ -18,6 +18,8 @@ const QuizContainer = () => {
         stage: 'quiz' // 'quiz' or 'results'
     });
 
+    const { user, setUser } = useAuth();
+
     // Fetch quiz questions on component mount
     useEffect(() => {
         const fetchQuiz = async () => {
@@ -31,7 +33,12 @@ const QuizContainer = () => {
                 // If quiz doesn't exist, generate it
                 if (!doc.quizzes || doc.quizzes.length === 0) {
                     console.log('📝 Generating quiz...');
-                    await processPDF(documentId, 'quiz');
+                    const genRes = await processPDF(documentId, 'quiz');
+
+                    // update user credits if returned
+                    if (genRes?.data?.user) {
+                        setUser(genRes.data.user);
+                    }
                     
                     // Fetch again to get the generated quiz
                     const updatedDocRes = await getDocumentById(documentId);

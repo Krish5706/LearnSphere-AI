@@ -169,8 +169,105 @@ class ImprovedRoadmapService {
             );
         }
 
+        // ⚡ Ensure studyTimeline is properly formatted for Document model
+        if (roadmap.studyTimeline) {
+            roadmap.studyTimeline = {
+                totalEstimatedHours: typeof roadmap.studyTimeline.totalEstimatedHours === 'number' 
+                    ? roadmap.studyTimeline.totalEstimatedHours 
+                    : parseInt(roadmap.studyTimeline.totalEstimatedHours) || 24,
+                recommendedPacePerWeek: typeof roadmap.studyTimeline.recommendedPacePerWeek === 'string'
+                    ? roadmap.studyTimeline.recommendedPacePerWeek
+                    : '4-6 hours/week',
+                phaseBreakdown: Array.isArray(roadmap.studyTimeline.phaseBreakdown)
+                    ? roadmap.studyTimeline.phaseBreakdown.map(pb => ({
+                        phase: String(pb.phase || pb.phaseName || 'Phase'),
+                        hours: typeof pb.hours === 'number' ? pb.hours : parseInt(pb.hours) || 8,
+                        percentage: typeof pb.percentage === 'number' ? pb.percentage : parseInt(pb.percentage) || 0
+                    }))
+                    : []
+            };
+        } else if (roadmap.phases && Array.isArray(roadmap.phases)) {
+            // Generate default studyTimeline from phases if not provided
+            const totalHours = roadmap.phases.reduce((sum, p) => sum + (p.estimatedHours || 8), 0);
+            roadmap.studyTimeline = {
+                totalEstimatedHours: totalHours,
+                recommendedPacePerWeek: '4-6 hours/week',
+                phaseBreakdown: roadmap.phases.map((p, idx) => {
+                    const hours = p.estimatedHours || Math.ceil(totalHours / roadmap.phases.length);
+                    return {
+                        phase: p.phaseName || `Phase ${idx + 1}`,
+                        hours: hours,
+                        percentage: Math.round((hours / totalHours) * 100)
+                    };
+                })
+            };
+        }
+
+        // ⚡ Ensure learningOutcomes is properly formatted (array of objects with outcome and description)
+        if (Array.isArray(roadmap.learningOutcomes)) {
+            roadmap.learningOutcomes = roadmap.learningOutcomes.map(outcome => {
+                if (typeof outcome === 'string') {
+                    // Convert plain string to proper format
+                    return {
+                        outcome: outcome,
+                        description: 'Key learning objective for this course'
+                    };
+                }
+                return {
+                    outcome: typeof outcome.outcome === 'string' ? outcome.outcome : String(outcome),
+                    description: typeof outcome.description === 'string' ? outcome.description : String(outcome.description || outcome)
+                };
+            });
+        } else {
+            // Ensure learningOutcomes is always an array
+            roadmap.learningOutcomes = [];
+        }
+
         console.log('✅ Roadmap sanitized for schema compatibility');
         return roadmap;
+    }
+
+    /**
+     * ⚡ Generate study timeline with phase breakdown for proper frontend display
+     * Converts phase data into the format expected by the Document model
+     * @param {Array} phases - Array of phase objects with estimatedHours
+     * @param {Object} statistics - Statistics object with estimatedTotalHours
+     * @returns {Object} studyTimeline in proper format for Document model
+     */
+    generateStudyTimeline(phases, statistics) {
+        const totalHours = statistics.estimatedTotalHours || 24;
+        
+        // Calculate phase breakdown with hours and percentages
+        const phaseBreakdown = phases.map(phase => {
+            const phaseHours = phase.estimatedHours || (totalHours / phases.length);
+            const percentage = Math.round((phaseHours / totalHours) * 100);
+            
+            return {
+                phase: phase.phaseName || `Phase ${phase.phaseNumber}`,
+                hours: Math.ceil(phaseHours),
+                percentage: percentage
+            };
+        });
+        
+        // Ensure percentages add up to 100
+        const totalPercentage = phaseBreakdown.reduce((sum, pb) => sum + pb.percentage, 0);
+        if (totalPercentage !== 100 && phaseBreakdown.length > 0) {
+            const diff = 100 - totalPercentage;
+            phaseBreakdown[phaseBreakdown.length - 1].percentage += diff;
+        }
+        
+        // Determine recommended pace based on learner level and total hours
+        const recommendedPacePerWeek = totalHours <= 20 
+            ? '4-6 hours/week' 
+            : totalHours <= 40 
+            ? '6-8 hours/week' 
+            : '8-10 hours/week';
+        
+        return {
+            totalEstimatedHours: Math.ceil(totalHours),
+            recommendedPacePerWeek: recommendedPacePerWeek,
+            phaseBreakdown: phaseBreakdown
+        };
     }
 
     // ============================================================================
@@ -641,6 +738,121 @@ Return ONLY this JSON structure (no explanations, no markdown, valid JSON only):
             console.error(`         ❌ Outcomes Error: ${error.message}`);
             throw new Error(`Failed to generate learning outcomes: ${error.message}`);
         }
+    }
+
+    /**
+     * ⚡ Generate comprehensive learning outcomes for entire course from PDF content
+     * Extracts main outcomes that learners will achieve after completing the course
+     * @param {string} courseTitle - Title of the course
+     * @param {Array} phases - All phases in the roadmap
+     * @param {string} content - PDF content to extract outcomes from
+     * @returns {Promise<Array>} Array of learning outcomes with outcome and description
+     */
+    async generateCourseOutcomes(courseTitle, phases, content) {
+        console.log('\n🎯 Generating Course-Level Learning Outcomes...');
+        
+        try {
+            // Get phase objectives and topics as context
+            const phaseContext = phases.map(p => ({
+                phase: p.phaseName,
+                objective: p.phaseObjective,
+                topics: p.learningOutcomes || []
+            })).map(p => `Phase: ${p.phase} - Objective: ${p.objective}`).join('\n');
+            
+            // Cap content for token efficiency
+            const cappedContent = this.capContent(content);
+            
+            const prompt = `You are an expert curriculum designer. Generate 5-7 comprehensive learning outcomes for a course titled "${courseTitle}".
+
+These outcomes should represent what learners will be able to do after completing ALL phases of this course.
+
+**Phase Context:**
+${phaseContext}
+
+**Course Content Sample:**
+${cappedContent}
+
+Return ONLY this valid JSON (no explanations, no markdown):
+{
+  "outcomes": [
+    {
+      "outcome": "Active verb (e.g., Understand, Apply, Analyze, Create) + specific skill/knowledge",
+      "description": "Concrete explanation of what learners can do or understand"
+    }
+  ]
+}
+
+Important:
+- Start outcomes with action verbs (Bloom's taxonomy): Understand, Apply, Analyze, Evaluate, Create
+- Each outcome must be specific and measurable
+- Descriptions should be 1-2 sentences
+- No generic outcomes like "Learn the material"
+- Focus on real, practical competencies`;
+
+            const response = await this.callGeminiAPI(prompt, 'Course-Level Learning Outcomes');
+            const outcomes = this.tryParseOrFallback(response, 'Course Learning Outcomes', { outcomes: [] });
+            
+            if (outcomes && Array.isArray(outcomes.outcomes) && outcomes.outcomes.length > 0) {
+                const formatted = outcomes.outcomes.slice(0, 7).map((o, idx) => ({
+                    id: `outcome_${idx + 1}`,
+                    outcome: typeof o.outcome === 'string' ? o.outcome : String(o.outcome || `Learning Outcome ${idx + 1}`),
+                    description: typeof o.description === 'string' ? o.description : String(o.description || 'Key learning objective for this course')
+                }));
+                
+                console.log(`   ✅ Generated ${formatted.length} course-level learning outcomes`);
+                formatted.forEach((o, idx) => {
+                    console.log(`      ${idx + 1}. ${o.outcome.substring(0, 60)}...`);
+                });
+                
+                return formatted;
+            }
+            
+            console.warn('   ⚠️ No outcomes generated, using fallback');
+            return this.generateFallbackOutcomes(courseTitle, phases);
+            
+        } catch (error) {
+            console.error(`   ⚠️ Course outcomes generation failed: ${error.message}`);
+            return this.generateFallbackOutcomes(courseTitle, phases);
+        }
+    }
+
+    /**
+     * Generate fallback learning outcomes based on phases
+     * Used when API fails or returns empty results
+     */
+    generateFallbackOutcomes(courseTitle, phases) {
+        const baseOutcomes = [
+            {
+                id: 'outcome_1',
+                outcome: `Master the Fundamentals of ${courseTitle}`,
+                description: `Develop a strong foundational understanding of core concepts and principles. Learn terminology and foundational theories that underpin the subject matter.`
+            },
+            {
+                id: 'outcome_2',
+                outcome: `Apply Knowledge to Practical Scenarios`,
+                description: `Use learned concepts to solve real-world problems and complete practical tasks. Demonstrate ability to apply theoretical knowledge in practical settings.`
+            },
+            {
+                id: 'outcome_3',
+                outcome: `Analyze Complex Topics and Make Informed Decisions`,
+                description: `Break down complex topics into components, analyze relationships, and use this understanding to make informed decisions and recommendations.`
+            }
+        ];
+
+        // Add phase-specific outcomes based on phase objectives
+        if (phases.length > 0) {
+            phases.forEach((phase, idx) => {
+                if (phase.phaseObjective) {
+                    baseOutcomes.push({
+                        id: `outcome_${baseOutcomes.length + 1}`,
+                        outcome: `${phase.phaseName} Competency`,
+                        description: phase.phaseObjective.substring(0, 150) + (phase.phaseObjective.length > 150 ? '...' : '')
+                    });
+                }
+            });
+        }
+
+        return baseOutcomes.slice(0, 7);
     }
 
     // ============================================================================
@@ -1142,12 +1354,61 @@ Return ONLY this JSON structure (no explanations, no markdown, valid JSON only):
                 throw new Error(`Cannot generate modules for "${phaseData.phaseName}": ${error.message}`);
             }
 
+            // Ensure each module has a unique moduleId (fallback if AI didn't provide one)
+            modules = modules.map((m, idx) => {
+                const baseId = phaseData.phaseId || `phase_${phaseData.phaseNumber}`;
+                // use existing moduleId or construct from phase and index
+                const moduleId = m.moduleId || `mod_${baseId}_${idx + 1}`;
+                return {
+                    ...m,
+                    moduleId,
+                    moduleNumber: m.moduleNumber || idx + 1
+                };
+            });
+
             // ⚡ PARALLELIZE: Generate enriched content (lessons+quiz+outcomes) for each module in parallel
             const enrichedModules = await this.mapWithConcurrency(
                 modules,
                 async (moduleData) => this.enrichModuleWithBatchContent(moduleData, phaseData, processed.full),
                 this.config.concurrency
             );
+
+            // Extract unique topics from all modules and lessons in this phase
+            const phaseTopicsSet = new Map();
+            enrichedModules.forEach(module => {
+                // From module's topicsCovered
+                (module.topicsCovered || []).forEach(topic => {
+                    if (typeof topic === 'string') {
+                        const topicName = topic.trim();
+                        if (!phaseTopicsSet.has(topicName.toLowerCase())) {
+                            phaseTopicsSet.set(topicName.toLowerCase(), {
+                                id: `topic_${phaseData.phaseId}_${phaseTopicsSet.size + 1}`,
+                                name: topicName,
+                                description: `Part of ${module.moduleTitle || 'this module'}`,
+                                difficulty: module.difficulty || 'intermediate',
+                                keyTerms: []
+                            });
+                        }
+                    }
+                });
+                // From lesson titles within modules
+                (module.lessons || []).forEach(lesson => {
+                    if (lesson.title) {
+                        const topicName = lesson.title.trim();
+                        if (!phaseTopicsSet.has(topicName.toLowerCase())) {
+                            phaseTopicsSet.set(topicName.toLowerCase(), {
+                                id: `topic_${phaseData.phaseId}_${phaseTopicsSet.size + 1}`,
+                                name: topicName,
+                                description: lesson.summary || lesson.introduction || 'Core learning topic',
+                                difficulty: lesson.difficulty || 'intermediate',
+                                keyTerms: lesson.learningObjectives?.slice(0, 3) || []
+                            });
+                        }
+                    }
+                });
+            });
+
+            const phaseTopics = Array.from(phaseTopicsSet.values());
 
             phases.push({
                 phaseId: phaseData.phaseId,
@@ -1162,6 +1423,8 @@ Return ONLY this JSON structure (no explanations, no markdown, valid JSON only):
                 chaptersIncluded: phaseData.chaptersIncluded || [],
                 learningOutcomes: phaseData.learningOutcomes || [],
                 modules: enrichedModules,
+                // ⚡ Phase-level topics extracted from modules and lessons
+                phaseTopics: phaseTopics,
                 phaseAssessment: {
                     type: 'comprehensive-exam',
                     questionCount: 15,
@@ -1170,6 +1433,43 @@ Return ONLY this JSON structure (no explanations, no markdown, valid JSON only):
                 }
             });
         }
+
+        // ⚡ Extract all topics from phases for top-level subTopics
+        const allTopics = [];
+        phases.forEach((phase, phaseIdx) => {
+            // Add phase topics
+            if (phase.phaseTopics && phase.phaseTopics.length > 0) {
+                phase.phaseTopics.forEach(topic => {
+                    allTopics.push({
+                        ...topic,
+                        phase: phaseIdx + 1,
+                        phaseName: phase.phaseName
+                    });
+                });
+            }
+            // Also extract topics from modules
+            if (phase.modules) {
+                phase.modules.forEach(module => {
+                    if (module.topicsCovered && module.topicsCovered.length > 0) {
+                        module.topicsCovered.forEach(topicName => {
+                            const topicExists = allTopics.some(t => 
+                                t.name && t.name.toLowerCase() === String(topicName).toLowerCase()
+                            );
+                            if (!topicExists) {
+                                allTopics.push({
+                                    id: module.moduleId || `topic_${phaseIdx}_${allTopics.length}`,
+                                    name: topicName,
+                                    description: module.moduleDescription || `Topic in ${phase.phaseName}`,
+                                    difficulty: module.difficulty || 'intermediate',
+                                    phase: phaseIdx + 1,
+                                    phaseName: phase.phaseName
+                                });
+                            }
+                        });
+                    }
+                });
+            }
+        });
 
         // Calculate statistics
         const statistics = {
@@ -1185,6 +1485,13 @@ Return ONLY this JSON structure (no explanations, no markdown, valid JSON only):
             contentSource: 'Full PDF extraction - No static content',
             generationMethod: 'Coursera-style professional roadmap'
         };
+
+        // ⚡ Generate study timeline with phase breakdown for frontend
+        const studyTimeline = this.generateStudyTimeline(phases, statistics);
+
+        // ⚡ Generate course-level learning outcomes from PDF content
+        console.log('\n' + '─'.repeat(50));
+        const learningOutcomes = await this.generateCourseOutcomes(courseAnalysis.courseTitle, phases, processed.full);
 
         // Build final roadmap
         const roadmap = {
@@ -1217,6 +1524,18 @@ Return ONLY this JSON structure (no explanations, no markdown, valid JSON only):
             
             // Statistics
             statistics: statistics,
+            
+            // ⚡ Course-level learning outcomes (aggregated from PDF extraction)
+            learningOutcomes: learningOutcomes,
+            
+            // ⚡ Study Timeline with proper format for Document model
+            studyTimeline: studyTimeline,
+            
+            // ⚡ Top-level subTopics extracted from all phases and modules
+            subTopics: allTopics,
+            // Alias for compatibility with frontend (Topics tab uses mainTopics)
+            mainTopics: allTopics,
+            
             // High-level course objective and timeline guidance
             courseObjective: courseAnalysis.courseObjective || courseAnalysis.courseDescription || `Learn ${courseAnalysis.courseTitle}`,
             timeline: {
@@ -1251,6 +1570,8 @@ Return ONLY this JSON structure (no explanations, no markdown, valid JSON only):
         console.log(`   • Lessons: ${statistics.totalLessons}`);
         console.log(`   • Quiz Questions: ${statistics.totalQuizQuestions}`);
         console.log(`   • Est. Duration: ${statistics.estimatedTotalHours} hours`);
+        console.log(`🎯 Learning Outcomes: ${learningOutcomes.length} outcomes extracted`);
+        console.log(`⏱️  Timeline: ${studyTimeline.totalEstimatedHours} hours total, ${studyTimeline.recommendedPacePerWeek}`);
         console.log(`📅 Completed: ${new Date().toISOString()}`);
         console.log('═'.repeat(70) + '\n');
 

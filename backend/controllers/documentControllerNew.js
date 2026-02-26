@@ -273,16 +273,22 @@ exports.processPDF = async (req, res) => {
 
             await doc.save();
 
-            // Deduct credits
+            // Deduct credits and return updated user info so frontend can stay in sync
+            let updatedUser = null;
             if (!user.isSubscribed) {
-                await User.findByIdAndUpdate(user._id, { $inc: { credits: -1 } });
+                updatedUser = await User.findByIdAndUpdate(
+                    user._id,
+                    { $inc: { credits: -1 } },
+                    { new: true } // return the modified document
+                );
             }
 
             res.status(200).json({
                 _id: doc._id,
                 message: "Processing completed successfully!",
                 processingTime: doc.processingDetails.processingTime,
-                results // Return results so frontend can render immediately
+                results, // Return results so frontend can render immediately
+                user: updatedUser || user
             });
 
         } catch (error) {
@@ -590,11 +596,19 @@ exports.uploadAndAnalyze = async (req, res) => {
             processingType: 'comprehensive',
         });
 
+        let updatedUser = null;
         if (!user.isSubscribed) {
-            await User.findByIdAndUpdate(user._id, { $inc: { credits: -1 } });
+            updatedUser = await User.findByIdAndUpdate(
+                user._id,
+                { $inc: { credits: -1 } },
+                { new: true }
+            );
         }
 
-        res.status(201).json(newDoc);
+        res.status(201).json({
+            ...newDoc.toObject(),
+            user: updatedUser || user
+        });
     } catch (err) {
         console.error("AI Error:", err);
         

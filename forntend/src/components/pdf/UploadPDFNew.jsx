@@ -6,7 +6,7 @@ import api from '../../services/api';
 import ProcessingOptions from './ProcessingOptions';
 
 const UploadPDF = () => {
-    const { user, canUseAI } = useAuth();
+    const { user, setUser, canUseAI } = useAuth();
     const navigate = useNavigate();
 
     const [file, setFile] = useState(null);
@@ -52,6 +52,11 @@ const UploadPDF = () => {
     };
 
     const handleProcessingComplete = (response) => {
+        // If backend sent updated user info (with new credits), update context
+        if (response?.user) {
+            setUser(response.user);
+        }
+
         // Redirect to document page to view results
         navigate(`/document/${uploadedDocId}`);
     };

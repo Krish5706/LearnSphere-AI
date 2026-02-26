@@ -33,8 +33,31 @@ const EnhancedRoadmap = ({ enhancedRoadmap, fileName, learnerLevel, documentId, 
     const [expandedLessons, setExpandedLessons] = useState({});
     const [activeTab, setActiveTab] = useState('overview');
     const [selectedTopic, setSelectedTopic] = useState(null);
+    // Normalize stored progress keys to include phaseId if missing (backwards compatibility)
+    const normalizeLessons = (rawLessons = []) => {
+        if (!enhancedRoadmap) return rawLessons;
+        const phases = enhancedRoadmap.learningPath || enhancedRoadmap.phases || [];
+        return rawLessons.map(key => {
+            // new keys include 3 segments (phase_module_lesson)
+            if (key.split('_').length >= 3) {
+                return key;
+            }
+            // attempt to find matching module to determine phase
+            for (const phase of phases) {
+                for (const module of phase.modules || []) {
+                    const candidateOld = `${module.moduleId}_${key}`;
+                    if (candidateOld === key) {
+                        return `${phase.phaseId}_${candidateOld}`;
+                    }
+                }
+            }
+            // if not found, prefix unknown
+            return `ph_unknown_${key}`;
+        });
+    };
+
     const [completedLessons, setCompletedLessons] = useState(
-        enhancedRoadmap?.progressTracking?.completedLessons || []
+        normalizeLessons(enhancedRoadmap?.progressTracking?.completedLessons || [])
     );
     const [completedModules, setCompletedModules] = useState(
         enhancedRoadmap?.progressTracking?.completedModules || []
@@ -162,12 +185,13 @@ const EnhancedRoadmap = ({ enhancedRoadmap, fileName, learnerLevel, documentId, 
         }
     };
 
-    // Generate unique lesson key combining moduleId and lessonId
-    const getLessonKey = (moduleId, lessonId) => `${moduleId}_${lessonId}`;
+    // Generate unique lesson key combining phaseId, moduleId and lessonId
+    // phaseId is included as a safeguard; moduleId may occasionally be undefined
+    const getLessonKey = (phaseId, moduleId, lessonId) => `${phaseId || 'ph_unknown'}_${moduleId || 'mod_unknown'}_${lessonId}`;
 
     // Handle marking lesson as complete
     const handleMarkLessonComplete = async (lessonId, phaseId, moduleId) => {
-        const lessonKey = getLessonKey(moduleId, lessonId);
+        const lessonKey = getLessonKey(phaseId, moduleId, lessonId);
         let updatedLessons;
         if (completedLessons.includes(lessonKey)) {
             updatedLessons = completedLessons.filter(id => id !== lessonKey);
@@ -180,7 +204,7 @@ const EnhancedRoadmap = ({ enhancedRoadmap, fileName, learnerLevel, documentId, 
         const phase = enhancedRoadmap?.learningPath?.find(p => p.phaseId === phaseId);
         const module = phase?.modules?.find(m => m.moduleId === moduleId);
         if (module) {
-            const moduleLessons = module.lessons?.map(l => getLessonKey(moduleId, l.lessonId)) || [];
+            const moduleLessons = module.lessons?.map(l => getLessonKey(phaseId, moduleId, l.lessonId)) || [];
             const allLessonsComplete = moduleLessons.every(lid => updatedLessons.includes(lid));
             
             if (allLessonsComplete && !completedModules.includes(moduleId)) {
@@ -549,6 +573,16 @@ const EnhancedRoadmap = ({ enhancedRoadmap, fileName, learnerLevel, documentId, 
                                     <p className="text-slate-700">
                                         <b>Main Topic:</b> {enhancedRoadmap.mainDocumentTopic || enhancedRoadmap.documentTitle}
                                     </p>
+                                    {enhancedRoadmap.mainTopics && enhancedRoadmap.mainTopics.length > 0 && (
+                                        <div className="mt-2">
+                                            <b>Main Topics:</b>
+                                            <ul className="list-disc list-inside text-slate-700 ml-4 mt-1">
+                                                {enhancedRoadmap.mainTopics.map((topic, idx) => (
+                                                    <li key={idx} className="text-sm">{typeof topic === 'string' ? topic : topic.name || topic}</li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    )}
                                     <p className="text-slate-600 text-sm mt-2">
                                         Source: {fileName}
                                     </p>
@@ -925,7 +959,7 @@ const EnhancedRoadmap = ({ enhancedRoadmap, fileName, learnerLevel, documentId, 
                                                                         <div className="space-y-2 mt-4">
                                                                             <p className="text-xs font-bold text-slate-900">Lessons:</p>
                                                                             {module.lessons?.map((lesson) => {
-                                                                                const lessonKey = getLessonKey(module.moduleId, lesson.lessonId);
+                                                                                const lessonKey = getLessonKey(phase.phaseId, module.moduleId, lesson.lessonId);
                                                                                 const isLessonComplete = completedLessons.includes(lessonKey);
                                                                                 return (
                                                                                     <div key={lessonKey} className={`border rounded-lg overflow-hidden transition-all ${

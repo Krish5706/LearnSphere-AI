@@ -141,7 +141,17 @@ async function testRoadmapGeneration() {
         const startTime = Date.now();
         
         // Generate roadmap using improved service
-        const roadmap = await roadmapService.generateEnhancedRoadmap(sampleContent, 'beginner');
+        let roadmap;
+        try {
+            roadmap = await roadmapService.generateEnhancedRoadmap(sampleContent, 'beginner');
+        } catch (err) {
+            console.error('❌ Roadmap generation failed during test:', err.message);
+            if (err.message && err.message.toLowerCase().includes('quota')) {
+                console.warn('⚠️ Quota error detected. Skipping further tests.');
+                process.exit(0);
+            }
+            throw err;
+        }
         
         const elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
         
