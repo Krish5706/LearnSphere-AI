@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
-import { FileText, BookOpen, BrainCircuit, Zap, Loader2 } from 'lucide-react';
+import { FileText, BookOpen, BrainCircuit, Zap, Loader2, Layers } from 'lucide-react';
 import api from '../../services/api';
 
 const ProcessingOptions = ({ documentId, onProcessingComplete, onCancel }) => {
     const [selectedOption, setSelectedOption] = useState(null);
     const [summaryType, setSummaryType] = useState('short');
     const [learnerLevel, setLearnerLevel] = useState('beginner');
+    const [flashcardCount, setFlashcardCount] = useState(15);
+    const [flashcardDifficulty, setFlashcardDifficulty] = useState('medium');
     const [isProcessing, setIsProcessing] = useState(false);
     const [error, setError] = useState('');
 
@@ -32,7 +34,14 @@ const ProcessingOptions = ({ documentId, onProcessingComplete, onCancel }) => {
             icon: BrainCircuit,
             color: 'green',
         },
-                {
+        {
+            id: 'flashcard',
+            title: 'Generate Flashcards',
+            description: 'Create AI-powered study cards with spaced repetition',
+            icon: Layers,
+            color: 'pink',
+        },
+        {
             id: 'comprehensive',
             title: 'Complete Analysis',
             description: 'Get everything: summaries and a quiz',
@@ -61,6 +70,8 @@ const ProcessingOptions = ({ documentId, onProcessingComplete, onCancel }) => {
                 processingType,
                 summaryType: selectedOption === 'summary' ? summaryType : undefined,
                 learnerLevel: selectedOption === 'roadmap' ? learnerLevel : undefined,
+                flashcardCount: selectedOption === 'flashcard' ? flashcardCount : undefined,
+                difficulty: selectedOption === 'flashcard' ? flashcardDifficulty : undefined,
             });
 
             onProcessingComplete(response.data);
@@ -103,6 +114,7 @@ const ProcessingOptions = ({ documentId, onProcessingComplete, onCancel }) => {
                                 blue: 'border-blue-200 bg-blue-50 hover:border-blue-400',
                                 purple: 'border-purple-200 bg-purple-50 hover:border-purple-400',
                                 green: 'border-green-200 bg-green-50 hover:border-green-400',
+                                pink: 'border-pink-200 bg-pink-50 hover:border-pink-400',
                                 amber: 'border-amber-200 bg-amber-50 hover:border-amber-400',
                             };
 
@@ -110,6 +122,7 @@ const ProcessingOptions = ({ documentId, onProcessingComplete, onCancel }) => {
                                 blue: 'text-blue-600',
                                 purple: 'text-purple-600',
                                 green: 'text-green-600',
+                                pink: 'text-pink-600',
                                 amber: 'text-amber-600',
                             };
 
@@ -181,6 +194,50 @@ const ProcessingOptions = ({ documentId, onProcessingComplete, onCancel }) => {
                                         <p className="text-xs text-slate-500 mt-1">{level.desc}</p>
                                     </button>
                                 ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Flashcard Options */}
+                    {selectedOption === 'flashcard' && (
+                        <div className="mb-8 p-6 bg-slate-50 rounded-2xl border border-slate-200 space-y-4">
+                            <div>
+                                <h3 className="font-bold text-slate-900 mb-2">Number of Cards: {flashcardCount}</h3>
+                                <input
+                                    type="range"
+                                    min="5"
+                                    max="30"
+                                    value={flashcardCount}
+                                    onChange={(e) => setFlashcardCount(parseInt(e.target.value))}
+                                    className="w-full accent-pink-600"
+                                />
+                                <div className="flex justify-between text-xs text-slate-500 mt-1">
+                                    <span>5 cards</span>
+                                    <span>30 cards</span>
+                                </div>
+                            </div>
+                            <div>
+                                <h3 className="font-bold text-slate-900 mb-2">Difficulty Level</h3>
+                                <div className="grid grid-cols-3 gap-3">
+                                    {[
+                                        { value: 'easy', label: 'Easy', desc: 'Basic concepts' },
+                                        { value: 'medium', label: 'Medium', desc: 'Balanced mix' },
+                                        { value: 'hard', label: 'Hard', desc: 'Advanced topics' },
+                                    ].map((diff) => (
+                                        <button
+                                            key={diff.value}
+                                            onClick={() => setFlashcardDifficulty(diff.value)}
+                                            className={`p-4 rounded-xl border-2 transition-all text-center ${
+                                                flashcardDifficulty === diff.value
+                                                    ? 'border-pink-600 bg-pink-50'
+                                                    : 'border-slate-200 hover:border-slate-300'
+                                            }`}
+                                        >
+                                            <p className="font-bold text-sm text-slate-900">{diff.label}</p>
+                                            <p className="text-xs text-slate-500 mt-1">{diff.desc}</p>
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
                         </div>
                     )}

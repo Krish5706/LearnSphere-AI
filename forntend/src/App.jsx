@@ -13,6 +13,7 @@ const Document = lazy(() => import('./pages/Document'));
 const Settings = lazy(() => import('./pages/Settings'));
 const Profile = lazy(() => import('./pages/Profile'));
 const Quiz = lazy(() => import('./pages/Quiz'));
+const Flashcards = lazy(() => import('./pages/Flashcards')); // 🆕 SRS Flashcards
 
 // Lazy load auth components
 const Login = lazy(() => import('./components/auth/Login'));
@@ -95,6 +96,22 @@ function App() {
               element={
                 <ProtectedRoute>
                   <Profile />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/flashcards"
+              element={
+                <ProtectedRoute>
+                  <Flashcards />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/flashcards/*"
+              element={
+                <ProtectedRoute>
+                  <Flashcards />
                 </ProtectedRoute>
               }
             />

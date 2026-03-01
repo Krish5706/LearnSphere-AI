@@ -1,0 +1,229 @@
+/**
+ * Flashcard Styles
+ * CSS for card flip animations and SRS components
+ */
+
+/* Perspective for 3D transforms */
+.perspective-1000 {
+    perspective: 1000px;
+}
+
+/* 3D transform preservation */
+.transform-style-preserve-3d {
+    transform-style: preserve-3d;
+}
+
+/* Backface visibility */
+.backface-hidden {
+    backface-visibility: hidden;
+}
+
+/* Y-axis rotation */
+.rotate-y-180 {
+    transform: rotateY(180deg);
+}
+
+/* Card flip transition */
+.flip-card {
+    perspective: 1000px;
+}
+
+.flip-card-inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transition: transform 0.6s;
+    transform-style: preserve-3d;
+}
+
+.flip-card.flipped .flip-card-inner {
+    transform: rotateY(180deg);
+}
+
+.flip-card-front,
+.flip-card-back {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    backface-visibility: hidden;
+    border-radius: 16px;
+}
+
+.flip-card-back {
+    transform: rotateY(180deg);
+}
+
+/* Study session animations */
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(50px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes slideOutLeft {
+    from {
+        opacity: 1;
+        transform: translateX(0);
+    }
+    to {
+        opacity: 0;
+        transform: translateX(-50px);
+    }
+}
+
+.slide-in-right {
+    animation: slideInRight 0.3s ease-out forwards;
+}
+
+.slide-out-left {
+    animation: slideOutLeft 0.3s ease-out forwards;
+}
+
+/* Progress bar gradient animation */
+@keyframes progressGradient {
+    0% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+.progress-animated {
+    background: linear-gradient(90deg, #3b82f6, #8b5cf6, #3b82f6);
+    background-size: 200% 200%;
+    animation: progressGradient 2s ease infinite;
+}
+
+/* Rating button hover effects */
+.rating-button {
+    transition: all 0.2s ease;
+}
+
+.rating-button:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.rating-button:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+/* Card glow effect for different difficulties */
+.card-easy {
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.2);
+}
+
+.card-medium {
+    box-shadow: 0 0 20px rgba(245, 158, 11, 0.2);
+}
+
+.card-hard {
+    box-shadow: 0 0 20px rgba(239, 68, 68, 0.2);
+}
+
+/* Deck card hover effect */
+.deck-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.deck-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
+}
+
+/* Stats card animations */
+@keyframes countUp {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.stat-number {
+    animation: countUp 0.4s ease-out forwards;
+}
+
+/* Completion celebration animation */
+@keyframes celebrate {
+    0% {
+        transform: scale(0) rotate(-45deg);
+        opacity: 0;
+    }
+    50% {
+        transform: scale(1.2) rotate(10deg);
+        opacity: 1;
+    }
+    100% {
+        transform: scale(1) rotate(0deg);
+        opacity: 1;
+    }
+}
+
+.celebration {
+    animation: celebrate 0.5s ease-out forwards;
+}
+
+/* Pulse animation for due cards indicator */
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
+.pulse-indicator {
+    animation: pulse 2s ease-in-out infinite;
+}
+
+/* Maturity level colors */
+.maturity-new {
+    background: linear-gradient(135deg, #3b82f6, #60a5fa);
+}
+
+.maturity-young {
+    background: linear-gradient(135deg, #22c55e, #4ade80);
+}
+
+.maturity-mature {
+    background: linear-gradient(135deg, #8b5cf6, #a78bfa);
+}
+
+.maturity-mastered {
+    background: linear-gradient(135deg, #f59e0b, #fbbf24);
+}
+
+/* Keyboard shortcut hints */
+.shortcut-badge {
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
+    font-size: 0.65rem;
+    padding: 2px 6px;
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 4px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 640px) {
+    .flip-card-front,
+    .flip-card-back {
+        padding: 1rem;
+    }
+    
+    .rating-button {
+        padding: 0.75rem 0.5rem;
+    }
+}

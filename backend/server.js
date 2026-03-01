@@ -21,6 +21,7 @@ const userRoutes = require('./routes/userRoutes');
 const todoRoutes = require('./routes/todoRoutes');
 const quizRoutes = require('./routes/quizRoutes');
 const lessonSelectionRoutes = require('./routes/lessonSelectionRoutes');
+const flashcardRoutes = require('./routes/flashcardRoutes'); // 🆕 SRS Flashcards
 const { router: documentNoteRouter, noteRouter: individualNoteRouter } = require('./routes/noteRoutes');
 
 // Import Middleware
@@ -54,6 +55,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/todos', todoRoutes);
 app.use('/api/quizzes', quizRoutes);
 app.use('/api/lessons', lessonSelectionRoutes); // 🆕 Strict lesson selection validation
+app.use('/api/flashcards', flashcardRoutes); // 🆕 Spaced Repetition System (SRS)
 app.use('/api/notes', individualNoteRouter);
 
 // --------------------

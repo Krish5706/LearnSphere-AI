@@ -8,6 +8,8 @@ const GeminiProcessor = require("../services/geminiProcessor");
 const RoadmapService = require("../services/roadmapService");
 const ImprovedRoadmapService = require("../services/improvedRoadmapService"); // NEW: Enhanced roadmap with detailed lessons
 const QuizService = require("../services/quizService");
+const SRSService = require("../services/srsService"); // SRS Flashcards
+const Flashcard = require("../models/Flashcard"); // SRS Flashcards
 const pdfParseService = require("../services/pdfParseService");
 const pdfExporter = require("../services/pdfExporter");
 
@@ -98,7 +100,7 @@ exports.processPDF = async (req, res) => {
         }
 
         // Validate processingType
-        const allowedTypes = ['summary', 'quiz', 'roadmap', 'comprehensive'];
+        const allowedTypes = ['summary', 'quiz', 'roadmap', 'comprehensive', 'flashcard'];
         if (!allowedTypes.includes(processingType)) {
             return res.status(400).json({ message: "Invalid processing type" });
         }
@@ -249,6 +251,59 @@ exports.processPDF = async (req, res) => {
                 }
                 
                 results.learnerLevel = learnerLevel;
+            }
+
+            // Handle flashcard generation
+            if (processingType === 'flashcard') {
+                console.log('🎴 Generating flashcards...');
+                const flashcardCount = req.body.flashcardCount || 15;
+                const difficulty = req.body.difficulty || 'medium';
+                const deckName = req.body.deckName || doc.fileName || 'Study Cards';
+                
+                try {
+                    // Delete existing flashcards for this document to prevent duplicates
+                    const deletedCount = await Flashcard.deleteMany({
+                        user: req.user._id,
+                        deck: deckName
+                    });
+                    if (deletedCount.deletedCount > 0) {
+                        console.log(`🗑️ Replaced ${deletedCount.deletedCount} existing flashcards in deck: ${deckName}`);
+                    }
+
+                    // Generate flashcards using AI
+                    const srsService = new SRSService(process.env.GEMINI_API_KEY);
+                    const generatedCards = await srsService.generateFlashcardsFromContent(pdfText, {
+                        count: flashcardCount,
+                        difficulty,
+                        documentTitle: doc.fileName
+                    });
+                    
+                    if (generatedCards.length > 0) {
+                        // Save flashcards to database
+                        const cardsToSave = generatedCards.map(card => ({
+                            user: req.user._id,
+                            document: documentId,
+                            deck: deckName,
+                            front: card.front,
+                            back: card.back,
+                            explanation: card.explanation,
+                            tags: card.tags || [],
+                            difficulty: difficulty,
+                            source: { type: 'ai-generated', documentId: documentId }
+                        }));
+                        
+                        const savedCards = await Flashcard.insertMany(cardsToSave);
+                        results.flashcards = {
+                            count: savedCards.length,
+                            deck: deckName,
+                            cards: savedCards
+                        };
+                        console.log(`✅ Generated and saved ${savedCards.length} flashcards`);
+                    }
+                } catch (flashcardError) {
+                    console.error('❌ Flashcard generation error:', flashcardError.message);
+                    throw flashcardError;
+                }
             }
 
             

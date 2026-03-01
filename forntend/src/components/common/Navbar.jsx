@@ -1,13 +1,13 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { ShieldCheck, LayoutDashboard, FileUp, CheckSquare } from 'lucide-react';
+import { ShieldCheck, LayoutDashboard, FileUp, CheckSquare, Layers } from 'lucide-react';
 import ProfileDropdown from './Dropdown';
 
 const Navbar = () => {
   const location = useLocation();
 
   // Security Helper: Check if the user is currently on an active route
-  const isActive = (path) => location.pathname === path ? "bg-blue-600 text-white" : "text-slate-600 hover:bg-slate-100";
+  const isActive = (path) => location.pathname === path || location.pathname.startsWith(path + '/') ? "bg-blue-600 text-white" : "text-slate-600 hover:bg-slate-100";
 
   return (
     <nav className="bg-white border-b border-slate-200 px-6 py-3 flex justify-between items-center sticky top-0 z-50">
@@ -24,6 +24,9 @@ const Navbar = () => {
         </Link>
         <Link to="/dashboard" className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all font-medium ${isActive('/dashboard')}`}>
           <LayoutDashboard size={18} /> Library
+        </Link>
+        <Link to="/flashcards" className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all font-medium ${isActive('/flashcards')}`}>
+          <Layers size={18} /> Flashcards
         </Link>
         <Link to="/todos" className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all font-medium ${isActive('/todos')}`}>
           <CheckSquare size={18} /> Tasks

@@ -31,7 +31,7 @@ const documentSchema = new mongoose.Schema({
     },
     processingType: {
         type: String,
-        enum: ['summary', 'quiz', 'comprehensive', 'roadmap'],
+        enum: ['summary', 'quiz', 'comprehensive', 'roadmap', 'flashcard'],
         default: 'comprehensive'
     },
     
