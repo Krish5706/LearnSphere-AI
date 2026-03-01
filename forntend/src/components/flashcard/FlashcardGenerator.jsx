@@ -3,11 +3,13 @@
  * 
  * Embeddable component for generating flashcards from a document.
  * Can be added to the Document page for quick flashcard generation.
+ * Matching existing website UI: LearnSphere AI
  */
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { generateFlashcards, generateFromKeyPoints } from '../../services/flashcardService';
+import { Sparkles, Loader2 } from 'lucide-react';
 
 const FlashcardGenerator = ({ documentId, documentName, hasKeyPoints = false }) => {
     const navigate = useNavigate();
@@ -29,7 +31,7 @@ const FlashcardGenerator = ({ documentId, documentName, hasKeyPoints = false }) 
                 difficulty,
                 deck,
                 autoSave: true,
-                replaceExisting: true // Replace existing cards in this deck
+                replaceExisting: true
             });
             
             const cardCount = response?.data?.count || response?.count || count;
@@ -71,7 +73,6 @@ const FlashcardGenerator = ({ documentId, documentName, hasKeyPoints = false }) 
     };
 
     const handleGoToFlashcards = () => {
-        // Navigate directly to the deck to show generated cards
         navigate(`/flashcards/deck/${encodeURIComponent(deck)}`);
     };
 
@@ -79,18 +80,20 @@ const FlashcardGenerator = ({ documentId, documentName, hasKeyPoints = false }) 
         return (
             <button
                 onClick={() => setIsExpanded(true)}
-                className="w-full p-4 bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-100 rounded-xl hover:from-purple-100 hover:to-blue-100 transition-all group"
+                className="w-full p-4 bg-white border border-slate-200 rounded-xl hover:border-blue-300 hover:shadow-md transition-all group"
             >
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <span className="text-2xl">🎴</span>
+                        <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
+                            <Sparkles size={20} />
+                        </div>
                         <div className="text-left">
-                            <div className="font-medium text-gray-800">Generate Flashcards</div>
-                            <div className="text-sm text-gray-500">Create study cards with AI</div>
+                            <div className="font-bold text-slate-800">Generate Flashcards</div>
+                            <div className="text-sm text-slate-500">Create study cards with AI</div>
                         </div>
                     </div>
-                    <svg className="w-5 h-5 text-gray-400 group-hover:text-purple-600 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+                    <svg className="w-5 h-5 text-slate-400 group-hover:text-blue-600 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                     </svg>
                 </div>
             </button>
@@ -98,29 +101,31 @@ const FlashcardGenerator = ({ documentId, documentName, hasKeyPoints = false }) 
     }
 
     return (
-        <div className="bg-gradient-to-br from-purple-50 to-blue-50 border border-purple-100 rounded-xl overflow-hidden">
+        <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
             {/* Header */}
-            <div className="p-4 border-b border-purple-100 flex justify-between items-center">
-                <div className="flex items-center gap-2">
-                    <span className="text-xl">🎴</span>
-                    <h3 className="font-semibold text-gray-800">Generate Flashcards</h3>
+            <div className="px-5 py-4 border-b border-slate-100 flex justify-between items-center">
+                <div className="flex items-center gap-3">
+                    <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
+                        <Sparkles size={20} />
+                    </div>
+                    <h3 className="font-bold text-slate-800">Generate Flashcards</h3>
                 </div>
                 <button
                     onClick={() => setIsExpanded(false)}
-                    className="p-1 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-white transition"
+                    className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition"
                 >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                     </svg>
                 </button>
             </div>
 
             {/* Options */}
-            <div className="p-4 space-y-4">
+            <div className="p-5 space-y-5">
                 {/* Count slider */}
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Number of cards: {count}
+                    <label className="block text-sm font-semibold text-slate-700 mb-2">
+                        Number of Cards: {count}
                     </label>
                     <input
                         type="range"
@@ -128,24 +133,28 @@ const FlashcardGenerator = ({ documentId, documentName, hasKeyPoints = false }) 
                         max="25"
                         value={count}
                         onChange={(e) => setCount(parseInt(e.target.value))}
-                        className="w-full"
+                        className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
                     />
+                    <div className="flex justify-between text-xs text-slate-400 font-medium mt-1">
+                        <span>5</span>
+                        <span>25</span>
+                    </div>
                 </div>
 
                 {/* Difficulty */}
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Difficulty
+                    <label className="block text-sm font-semibold text-slate-700 mb-2">
+                        Difficulty Level
                     </label>
                     <div className="flex gap-2">
                         {['easy', 'medium', 'hard'].map(level => (
                             <button
                                 key={level}
                                 onClick={() => setDifficulty(level)}
-                                className={`flex-1 py-2 px-3 rounded-lg text-sm capitalize transition ${
+                                className={`flex-1 py-2.5 px-3 rounded-xl text-sm capitalize font-semibold transition ${
                                     difficulty === level
-                                        ? 'bg-purple-600 text-white'
-                                        : 'bg-white text-gray-600 hover:bg-gray-100'
+                                        ? 'bg-blue-600 text-white shadow-md'
+                                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                                 }`}
                             >
                                 {level}
@@ -156,29 +165,40 @@ const FlashcardGenerator = ({ documentId, documentName, hasKeyPoints = false }) 
 
                 {/* Deck name */}
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Save to deck
+                    <label className="block text-sm font-semibold text-slate-700 mb-2">
+                        Save to Deck
                     </label>
                     <input
                         type="text"
                         value={deck}
                         onChange={(e) => setDeck(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                        className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-white"
                         placeholder="Deck name..."
                     />
                 </div>
 
                 {/* Result message */}
                 {result && (
-                    <div className={`p-3 rounded-lg ${
-                        result.success ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                    <div className={`p-4 rounded-xl ${
+                        result.success ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200'
                     }`}>
                         <div className="flex items-center justify-between">
-                            <span>{result.success ? '✅' : '❌'} {result.message}</span>
+                            <span className="flex items-center gap-2 font-medium text-sm">
+                                {result.success ? (
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                    </svg>
+                                ) : (
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                )}
+                                {result.message}
+                            </span>
                             {result.success && (
                                 <button
                                     onClick={handleGoToFlashcards}
-                                    className="px-3 py-1 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition"
+                                    className="px-3 py-1.5 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition font-semibold"
                                 >
                                     View Deck →
                                 </button>
@@ -189,19 +209,22 @@ const FlashcardGenerator = ({ documentId, documentName, hasKeyPoints = false }) 
             </div>
 
             {/* Action buttons */}
-            <div className="p-4 bg-white/50 flex flex-col sm:flex-row gap-2">
+            <div className="px-5 pb-5 flex flex-col sm:flex-row gap-2">
                 <button
                     onClick={handleGenerateFromContent}
                     disabled={isGenerating}
-                    className="flex-1 py-3 px-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    className="flex-1 py-3 px-4 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-semibold shadow-sm"
                 >
                     {isGenerating ? (
                         <>
-                            <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                            <Loader2 className="animate-spin h-4 w-4" />
                             Generating...
                         </>
                     ) : (
-                        <>🤖 Generate from Content</>
+                        <>
+                            <Sparkles size={18} />
+                            Generate from Content
+                        </>
                     )}
                 </button>
 
@@ -209,15 +232,18 @@ const FlashcardGenerator = ({ documentId, documentName, hasKeyPoints = false }) 
                     <button
                         onClick={handleGenerateFromKeyPoints}
                         disabled={isGenerating}
-                        className="flex-1 py-3 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                        className="flex-1 py-3 px-4 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-semibold shadow-sm"
                     >
                         {isGenerating ? (
                             <>
-                                <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                                <Loader2 className="animate-spin h-4 w-4" />
                                 Generating...
                             </>
                         ) : (
-                            <>📝 From Key Points</>
+                            <>
+                                <Sparkles size={18} />
+                                From Key Points
+                            </>
                         )}
                     </button>
                 )}

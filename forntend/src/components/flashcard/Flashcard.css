@@ -1,29 +1,70 @@
 /**
  * Flashcard Styles
  * CSS for card flip animations and SRS components
+ * Matching existing website UI: LearnSphere AI
  */
 
-/* Perspective for 3D transforms */
+/* ============================================
+   Base Tailwind-aligned Styles
+   ============================================ */
+
+/* Card containers - matching website design */
+.flashcard-container {
+    background-color: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 1rem;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+}
+
+/* Button styles - matching website primary buttons */
+.flashcard-btn-primary {
+    background-color: #2563eb;
+    color: white;
+    padding: 0.625rem 1.25rem;
+    border-radius: 0.75rem;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+
+.flashcard-btn-primary:hover {
+    background-color: #1d4ed8;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+/* Secondary button */
+.flashcard-btn-secondary {
+    background-color: #f1f5f9;
+    color: #475569;
+    padding: 0.625rem 1.25rem;
+    border-radius: 0.75rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.flashcard-btn-secondary:hover {
+    background-color: #e2e8f0;
+}
+
+/* ============================================
+   3D Transforms for Card Flip
+   ============================================ */
+
 .perspective-1000 {
     perspective: 1000px;
 }
 
-/* 3D transform preservation */
 .transform-style-preserve-3d {
     transform-style: preserve-3d;
 }
 
-/* Backface visibility */
 .backface-hidden {
     backface-visibility: hidden;
 }
 
-/* Y-axis rotation */
 .rotate-y-180 {
     transform: rotateY(180deg);
 }
 
-/* Card flip transition */
 .flip-card {
     perspective: 1000px;
 }
@@ -46,14 +87,19 @@
     width: 100%;
     height: 100%;
     backface-visibility: hidden;
-    border-radius: 16px;
+    border-radius: 1rem;
+    background-color: white;
+    border: 1px solid #e2e8f0;
 }
 
 .flip-card-back {
     transform: rotateY(180deg);
 }
 
-/* Study session animations */
+/* ============================================
+   Study Session Animations
+   ============================================ */
+
 @keyframes slideInRight {
     from {
         opacity: 0;
@@ -84,7 +130,6 @@
     animation: slideOutLeft 0.3s ease-out forwards;
 }
 
-/* Progress bar gradient animation */
 @keyframes progressGradient {
     0% {
         background-position: 0% 50%;
@@ -103,44 +148,101 @@
     animation: progressGradient 2s ease infinite;
 }
 
-/* Rating button hover effects */
+/* ============================================
+   Rating Buttons - Matching Website UI
+   ============================================ */
+
 .rating-button {
     transition: all 0.2s ease;
+    border-radius: 0.75rem;
+    padding: 0.75rem 1rem;
+    font-weight: 500;
+    border: 1px solid #e2e8f0;
+    background-color: white;
+    color: #475569;
 }
 
 .rating-button:hover:not(:disabled) {
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    border-color: #3b82f6;
 }
 
 .rating-button:active:not(:disabled) {
     transform: translateY(0);
 }
 
-/* Card glow effect for different difficulties */
+/* Rating colors matching website design */
+.rating-easy {
+    background-color: #dcfce7;
+    color: #166534;
+    border-color: #bbf7d0;
+}
+
+.rating-easy:hover {
+    background-color: #bbf7d0;
+}
+
+.rating-medium {
+    background-color: #fef3c7;
+    color: #92400e;
+    border-color: #fde68a;
+}
+
+.rating-medium:hover {
+    background-color: #fde68a;
+}
+
+.rating-hard {
+    background-color: #fee2e2;
+    color: #991b1b;
+    border-color: #fecaca;
+}
+
+.rating-hard:hover {
+    background-color: #fecaca;
+}
+
+/* ============================================
+   Card Difficulty Glow Effects
+   ============================================ */
+
 .card-easy {
-    box-shadow: 0 0 20px rgba(59, 130, 246, 0.2);
+    box-shadow: 0 0 20px rgba(34, 197, 94, 0.15);
+    border-color: #bbf7d0;
 }
 
 .card-medium {
-    box-shadow: 0 0 20px rgba(245, 158, 11, 0.2);
+    box-shadow: 0 0 20px rgba(245, 158, 11, 0.15);
+    border-color: #fde68a;
 }
 
 .card-hard {
-    box-shadow: 0 0 20px rgba(239, 68, 68, 0.2);
+    box-shadow: 0 0 20px rgba(239, 68, 68, 0.15);
+    border-color: #fecaca;
 }
 
-/* Deck card hover effect */
+/* ============================================
+   Deck Card Hover Effects
+   ============================================ */
+
 .deck-card {
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    transition: all 0.2s ease;
+    background-color: white;
+    border: 1px solid #f1f5f9;
+    border-radius: 1rem;
 }
 
 .deck-card:hover {
     transform: translateY(-4px);
-    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    border-color: #e2e8f0;
 }
 
-/* Stats card animations */
+/* ============================================
+   Stats Card Animations
+   ============================================ */
+
 @keyframes countUp {
     from {
         opacity: 0;
@@ -156,7 +258,10 @@
     animation: countUp 0.4s ease-out forwards;
 }
 
-/* Completion celebration animation */
+/* ============================================
+   Completion Celebration Animation
+   ============================================ */
+
 @keyframes celebrate {
     0% {
         transform: scale(0) rotate(-45deg);
@@ -176,7 +281,10 @@
     animation: celebrate 0.5s ease-out forwards;
 }
 
-/* Pulse animation for due cards indicator */
+/* ============================================
+   Pulse Animation for Due Cards
+   ============================================ */
+
 @keyframes pulse {
     0%, 100% {
         opacity: 1;
@@ -190,33 +298,83 @@
     animation: pulse 2s ease-in-out infinite;
 }
 
-/* Maturity level colors */
+/* ============================================
+   Maturity Level Colors - Matching Design
+   ============================================ */
+
 .maturity-new {
     background: linear-gradient(135deg, #3b82f6, #60a5fa);
+    color: white;
 }
 
 .maturity-young {
     background: linear-gradient(135deg, #22c55e, #4ade80);
+    color: white;
 }
 
 .maturity-mature {
     background: linear-gradient(135deg, #8b5cf6, #a78bfa);
+    color: white;
 }
 
 .maturity-mastered {
     background: linear-gradient(135deg, #f59e0b, #fbbf24);
+    color: white;
 }
 
-/* Keyboard shortcut hints */
+/* ============================================
+   Keyboard Shortcut Hints
+   ============================================ */
+
 .shortcut-badge {
     font-family: ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
     font-size: 0.65rem;
     padding: 2px 6px;
     background: rgba(0, 0, 0, 0.1);
     border-radius: 4px;
+    color: #64748b;
 }
 
-/* Responsive adjustments */
+/* ============================================
+   Text Colors - Matching Website Design
+   ============================================ */
+
+.text-primary {
+    color: #0f172a;
+}
+
+.text-secondary {
+    color: #475569;
+}
+
+.text-muted {
+    color: #94a3b8;
+}
+
+.text-accent {
+    color: #2563eb;
+}
+
+/* ============================================
+   Background Colors - Matching Website Design
+   ============================================ */
+
+.bg-primary {
+    background-color: #f8fafc;
+}
+
+.bg-card {
+    background-color: white;
+}
+
+.bg-hover:hover {
+    background-color: #f1f5f9;
+}
+
+/* ============================================
+   Responsive Adjustments
+   ============================================ */
+
 @media (max-width: 640px) {
     .flip-card-front,
     .flip-card-back {
@@ -225,5 +383,43 @@
     
     .rating-button {
         padding: 0.75rem 0.5rem;
+        font-size: 0.875rem;
     }
+    
+    .deck-card {
+        border-radius: 0.75rem;
+    }
+}
+
+/* ============================================
+   Focus States - Accessibility
+   ============================================ */
+
+.flashcard-focus:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px #3b82f6;
+}
+
+/* ============================================
+   Disabled States
+   ============================================ */
+
+.flashcard-disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+/* ============================================
+   Loading Spinner
+   ============================================ */
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.flashcard-spinner {
+    animation: spin 1s linear infinite;
 }

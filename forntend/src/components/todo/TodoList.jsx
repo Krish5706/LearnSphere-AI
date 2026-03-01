@@ -90,41 +90,60 @@ const TodoList = () => {
 
             {/* Stats Cards */}
             {stats && (
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                    <div className="bg-white p-4 rounded-xl border border-slate-200">
-                        <div className="flex items-center gap-2 text-slate-600 mb-2">
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
+                    {/* Total Tasks */}
+                    <div className="bg-gradient-to-br from-slate-50 to-slate-100 rounded-2xl p-4 border border-slate-200">
+                        <div className="flex items-center gap-2 text-slate-600 mb-1">
                             <BookOpen size={16} />
-                            <span className="text-sm font-bold">Total Tasks</span>
+                            <span className="text-sm font-medium">Total Tasks</span>
                         </div>
-                        <p className="text-2xl font-black text-slate-800">{stats.total}</p>
+                        <div className="text-2xl font-bold text-slate-800">
+                            {stats.total || 0}
+                        </div>
                     </div>
-                    <div className="bg-white p-4 rounded-xl border border-slate-200">
-                        <div className="flex items-center gap-2 text-green-600 mb-2">
+
+                    {/* Completed */}
+                    <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-2xl p-4 border border-green-200">
+                        <div className="flex items-center gap-2 text-green-600 mb-1">
                             <CheckCircle2 size={16} />
-                            <span className="text-sm font-bold">Completed</span>
+                            <span className="text-sm font-medium">Completed</span>
                         </div>
-                        <p className="text-2xl font-black text-green-600">{stats.completed}</p>
+                        <div className="text-2xl font-bold text-green-600">
+                            {stats.completed || 0}
+                        </div>
                     </div>
-                    <div className="bg-white p-4 rounded-xl border border-slate-200">
-                        <div className="flex items-center gap-2 text-orange-600 mb-2">
+
+                    {/* Pending */}
+                    <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-2xl p-4 border border-orange-200">
+                        <div className="flex items-center gap-2 text-orange-600 mb-1">
                             <Clock size={16} />
-                            <span className="text-sm font-bold">Pending</span>
+                            <span className="text-sm font-medium">Pending</span>
                         </div>
-                        <p className="text-2xl font-black text-orange-600">{stats.pending}</p>
+                        <div className="text-2xl font-bold text-orange-600">
+                            {stats.pending || 0}
+                        </div>
                     </div>
-                    <div className="bg-white p-4 rounded-xl border border-slate-200">
-                        <div className="flex items-center gap-2 text-red-600 mb-2">
+
+                    {/* Missed */}
+                    <div className="bg-gradient-to-br from-red-50 to-red-100 rounded-2xl p-4 border border-red-200">
+                        <div className="flex items-center gap-2 text-red-600 mb-1">
                             <AlertTriangle size={16} />
-                            <span className="text-sm font-bold">Missed</span>
+                            <span className="text-sm font-medium">Missed</span>
                         </div>
-                        <p className="text-2xl font-black text-red-600">{stats.missed || 0}</p>
+                        <div className="text-2xl font-bold text-red-600">
+                            {stats.missed || 0}
+                        </div>
                     </div>
-                    <div className="bg-white p-4 rounded-xl border border-slate-200">
-                        <div className="flex items-center gap-2 text-blue-600 mb-2">
+
+                    {/* Due Today */}
+                    <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl p-4 border border-blue-200">
+                        <div className="flex items-center gap-2 text-blue-600 mb-1">
                             <Calendar size={16} />
-                            <span className="text-sm font-bold">Due Today</span>
+                            <span className="text-sm font-medium">Due Today</span>
                         </div>
-                        <p className="text-2xl font-black text-blue-600">{stats.dueToday}</p>
+                        <div className="text-2xl font-bold text-blue-600">
+                            {stats.dueToday || 0}
+                        </div>
                     </div>
                 </div>
             )}
@@ -133,18 +152,35 @@ const TodoList = () => {
             <TodoFilters filters={filters} onFilterChange={handleFilterChange} />
 
             {/* Todo List */}
-            <div className="space-y-3">
+            <div className="space-y-1">
                 {todos.length === 0 ? (
-                    <div className="text-center py-12">
-                        <BookOpen size={48} className="mx-auto text-slate-300 mb-4" />
-                        <h3 className="text-lg font-bold text-slate-600 mb-2">No study tasks yet</h3>
-                        <p className="text-slate-500 mb-4">Create your first learning task to get started</p>
-                        <button
-                            onClick={handleAddTodo}
-                            className="bg-blue-600 text-white px-6 py-2 rounded-xl font-bold hover:bg-blue-700 transition-colors"
-                        >
-                            Add Your First Task
-                        </button>
+                    <div className="flex items-center justify-center py-1">
+                        <div className="w-full bg-white border border-slate-200 rounded-2xl p-20 text-center shadow-sm">
+
+                            {/* Icon */}
+                            <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <BookOpen size={40} className="text-slate-400" />
+                            </div>
+
+                            {/* Title */}
+                            <h2 className="text-2xl font-bold text-slate-800 mb-2">
+                                No Study Tasks Yet
+                            </h2>
+
+                            {/* Description */}
+                            <p className="text-slate-600 mb-10 max-w-sm mx-auto">
+                                Create your first learning task to start tracking your progress.
+                            </p>
+
+                            {/* Button */}
+                            <button
+                                onClick={handleAddTodo}
+                                className="px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 font-medium transition-all duration-200 shadow-sm hover:shadow-md"
+                            >
+                                Add Your First Task
+                            </button>
+
+                        </div>
                     </div>
                 ) : (
                     todos.map((todo) => (

@@ -103,7 +103,7 @@ const Document = () => {
                     <button onClick={() => setActiveTab('quiz')} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'quiz' ? 'bg-white text-blue-600' : 'text-slate-600'}`}>
                         <GraduationCap size={16} /> Quiz {isRestricted && <Lock size={12} />}
                     </button>
-                    <button onClick={() => setActiveTab('flashcards')} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'flashcards' ? 'bg-white text-purple-600' : 'text-slate-600'}`}>
+                    <button onClick={() => setActiveTab('flashcards')} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'flashcards' ? 'bg-white text-blue-600' : 'text-slate-600'}`}>
                         <Layers size={16} /> Flashcards
                     </button>
                     <button onClick={() => setActiveTab('notes')} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'notes' ? 'bg-white text-blue-600' : 'text-slate-600'}`}>

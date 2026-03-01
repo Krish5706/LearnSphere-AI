@@ -6,7 +6,7 @@
  */
 
 import React, { useState } from 'react';
-import { formatInterval, getMaturityColor } from '../../services/flashcardService';
+import { Trash2, Settings, Plus, RefreshCw, BookOpen } from 'lucide-react';
 
 // Deck card component
 const DeckCard = ({ deck, onStudy, onManage, onDelete }) => {
@@ -21,36 +21,28 @@ const DeckCard = ({ deck, onStudy, onManage, onDelete }) => {
     };
 
     return (
-        <div className="bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-200 overflow-hidden border border-gray-100">
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all overflow-hidden flex flex-col">
             {/* Deck header */}
-            <div className="p-5 border-b border-gray-100">
+            <div className="p-5 border-b border-slate-100">
                 <div className="flex justify-between items-start mb-3">
-                    <h3 className="text-lg font-semibold text-gray-800 truncate pr-4">
+                    <h3 className="text-lg font-bold text-slate-800 truncate pr-4">
                         {deck.name}
                     </h3>
                     <div className="flex gap-1">
                         <button
                             onClick={() => onManage(deck.name)}
-                            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition"
+                            className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition"
                             title="Manage deck"
                         >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" 
-                                    d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" 
-                                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                            </svg>
+                            <Settings size={18} />
                         </button>
                         <button
                             onClick={handleDelete}
                             disabled={isDeleting}
-                            className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition disabled:opacity-50"
+                            className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition disabled:opacity-50"
                             title="Delete deck"
                         >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" 
-                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
+                            <Trash2 size={18} />
                         </button>
                     </div>
                 </div>
@@ -59,28 +51,28 @@ const DeckCard = ({ deck, onStudy, onManage, onDelete }) => {
                 <div className="flex gap-4 text-sm">
                     <div className="flex items-center gap-1">
                         <span className="w-2 h-2 rounded-full bg-blue-500"></span>
-                        <span className="text-gray-600">{deck.newCount} new</span>
+                        <span className="text-slate-600">{deck.newCount} new</span>
                     </div>
                     <div className="flex items-center gap-1">
                         <span className="w-2 h-2 rounded-full bg-orange-500"></span>
-                        <span className="text-gray-600">{deck.dueCount} due</span>
+                        <span className="text-slate-600">{deck.dueCount} due</span>
                     </div>
                     <div className="flex items-center gap-1">
-                        <span className="w-2 h-2 rounded-full bg-gray-400"></span>
-                        <span className="text-gray-600">{deck.count} total</span>
+                        <span className="w-2 h-2 rounded-full bg-slate-400"></span>
+                        <span className="text-slate-600">{deck.count} total</span>
                     </div>
                 </div>
             </div>
 
             {/* Study button */}
-            <div className="p-4 bg-gray-50">
+            <div className="p-4 bg-slate-50">
                 <button
                     onClick={() => onStudy(deck.name)}
                     disabled={deck.count === 0}
-                    className={`w-full py-3 rounded-lg font-medium transition-all ${
+                    className={`w-full py-3 rounded-xl font-semibold transition-all ${
                         deck.count > 0
                             ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                            : 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                            : 'bg-slate-200 text-slate-500 cursor-not-allowed'
                     }`}
                 >
                     {deck.count > 0 
@@ -130,7 +122,6 @@ const CreateCardModal = ({ isOpen, onClose, onSave, decks }) => {
             onClose();
         } catch (err) {
             console.error('Error saving flashcard:', err);
-            // Check for specific error types
             if (err.response?.status === 401) {
                 setError('Session expired. Please log in again.');
             } else if (err.response?.data?.message) {
@@ -159,9 +150,12 @@ const CreateCardModal = ({ isOpen, onClose, onSave, decks }) => {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={handleClose}>
             <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl" onClick={(e) => e.stopPropagation()}>
                 {/* Header */}
-                <div className="flex items-center justify-between p-5 border-b">
-                    <h2 className="text-lg font-bold text-gray-800">Add Flashcard</h2>
-                    <button onClick={handleClose} className="text-gray-400 hover:text-gray-600">
+                <div className="flex items-center justify-between p-5 border-b border-slate-100">
+                    <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                        <Plus size={20} className="text-blue-600" />
+                        Add Flashcard
+                    </h2>
+                    <button onClick={handleClose} className="text-slate-400 hover:text-slate-600">
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                         </svg>
@@ -171,13 +165,13 @@ const CreateCardModal = ({ isOpen, onClose, onSave, decks }) => {
                 <div className="p-5 space-y-4 max-h-[70vh] overflow-y-auto">
                     {/* Question */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                        <label className="block text-sm font-medium text-slate-700 mb-1.5">
                             Question *
                         </label>
                         <textarea
                             value={front}
                             onChange={(e) => setFront(e.target.value)}
-                            className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none text-sm"
+                            className="w-full px-3 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none text-sm"
                             rows="2"
                             placeholder="What do you want to remember?"
                             autoFocus
@@ -186,13 +180,13 @@ const CreateCardModal = ({ isOpen, onClose, onSave, decks }) => {
 
                     {/* Answer */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                        <label className="block text-sm font-medium text-slate-700 mb-1.5">
                             Answer *
                         </label>
                         <textarea
                             value={back}
                             onChange={(e) => setBack(e.target.value)}
-                            className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none text-sm"
+                            className="w-full px-3 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none text-sm"
                             rows="2"
                             placeholder="The answer or explanation"
                         />
@@ -200,21 +194,21 @@ const CreateCardModal = ({ isOpen, onClose, onSave, decks }) => {
 
                     {/* Hint - optional */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                            Hint <span className="text-gray-400 font-normal">(optional)</span>
+                        <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                            Hint <span className="text-slate-400 font-normal">(optional)</span>
                         </label>
                         <input
                             type="text"
                             value={hint}
                             onChange={(e) => setHint(e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                            className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm"
                             placeholder="A clue to help remember"
                         />
                     </div>
 
                     {/* Deck */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                        <label className="block text-sm font-medium text-slate-700 mb-1.5">
                             Deck
                         </label>
                         {decks.length > 0 ? (
@@ -224,7 +218,7 @@ const CreateCardModal = ({ isOpen, onClose, onSave, decks }) => {
                                     setSelectedDeck(e.target.value);
                                     if (e.target.value) setNewDeckName('');
                                 }}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                                className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm"
                             >
                                 <option value="">Create new deck...</option>
                                 {decks.map(d => (
@@ -238,7 +232,7 @@ const CreateCardModal = ({ isOpen, onClose, onSave, decks }) => {
                                 type="text"
                                 value={newDeckName}
                                 onChange={(e) => setNewDeckName(e.target.value)}
-                                className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm ${decks.length > 0 ? 'mt-2' : ''}`}
+                                className={`w-full px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm ${decks.length > 0 ? 'mt-2' : ''}`}
                                 placeholder="Enter deck name"
                             />
                         )}
@@ -246,33 +240,38 @@ const CreateCardModal = ({ isOpen, onClose, onSave, decks }) => {
 
                     {/* Error */}
                     {error && (
-                        <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm flex items-start gap-2">
-                            <span className="text-red-500">⚠️</span>
+                        <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm flex items-start gap-2">
+                            <svg className="w-4 h-4 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
                             <span>{error}</span>
                         </div>
                     )}
                 </div>
 
                 {/* Footer */}
-                <div className="p-5 border-t bg-gray-50 rounded-b-2xl flex justify-end gap-3">
+                <div className="p-5 border-t bg-slate-50 rounded-b-2xl flex justify-end gap-3">
                     <button
                         onClick={handleClose}
-                        className="px-4 py-2 text-gray-600 hover:bg-gray-200 rounded-lg transition text-sm font-medium"
+                        className="px-4 py-2 text-slate-600 hover:bg-slate-200 rounded-xl transition text-sm font-semibold"
                     >
                         Cancel
                     </button>
                     <button
                         onClick={handleSave}
                         disabled={!front.trim() || !back.trim() || isSaving}
-                        className="px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium flex items-center gap-2"
+                        className="px-5 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed text-sm font-semibold flex items-center gap-2"
                     >
                         {isSaving ? (
                             <>
-                                <span className="animate-spin">⏳</span>
+                                <RefreshCw className="animate-spin h-4 w-4" />
                                 Saving...
                             </>
                         ) : (
-                            'Add Card'
+                            <>
+                                <Plus size={16} />
+                                Add Card
+                            </>
                         )}
                     </button>
                 </div>
@@ -281,179 +280,62 @@ const CreateCardModal = ({ isOpen, onClose, onSave, decks }) => {
     );
 };
 
-// Compact Stats Widget - only shows when there's meaningful data
-const StatsWidget = ({ stats, onStudyAll }) => {
-    if (!stats) return null;
-
-    // Check if user has any review history
-    const hasStudyHistory = stats.totalReviews > 0;
-    const hasCards = stats.totalCards > 0;
-
-    if (!hasCards) return null;
-
-    return (
-        <div className="mb-6">
-            {/* Compact stats row */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                {/* Due Today - Primary action card */}
-                <div className="bg-gradient-to-br from-orange-500 to-red-500 rounded-xl p-4 text-white">
-                    <div className="text-3xl font-bold">{stats.dueToday}</div>
-                    <div className="text-sm opacity-90">Due Today</div>
-                </div>
-                
-                {/* Total Cards */}
-                <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
-                    <div className="text-3xl font-bold text-gray-800">{stats.totalCards}</div>
-                    <div className="text-sm text-gray-500">Total Cards</div>
-                </div>
-                
-                {/* Retention - only show if they've done reviews */}
-                {hasStudyHistory ? (
-                    <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
-                        <div className="flex items-baseline gap-1">
-                            <span className="text-3xl font-bold text-green-600">{stats.overallRetention}%</span>
-                        </div>
-                        <div className="text-sm text-gray-500">Retention Rate</div>
-                    </div>
-                ) : (
-                    <div className="bg-gradient-to-br from-blue-500 to-indigo-500 rounded-xl p-4 text-white">
-                        <div className="text-lg font-medium">📚 New!</div>
-                        <div className="text-sm opacity-90">Start studying</div>
-                    </div>
-                )}
-                
-                {/* Reviews Done OR Streak info */}
-                {hasStudyHistory ? (
-                    <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
-                        <div className="text-3xl font-bold text-purple-600">{stats.totalReviews}</div>
-                        <div className="text-sm text-gray-500">Reviews Done</div>
-                    </div>
-                ) : (
-                    <div className="bg-gray-100 rounded-xl p-4">
-                        <div className="text-lg font-medium text-gray-600">🎯 Goal</div>
-                        <div className="text-sm text-gray-500">{stats.dueToday} cards today</div>
-                    </div>
-                )}
-            </div>
-
-            {/* Maturity progress bar - only show if there's meaningful data */}
-            {hasStudyHistory && stats.maturity && (
-                <div className="mt-4 bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
-                    <div className="flex justify-between items-center mb-2">
-                        <span className="text-sm font-medium text-gray-700">Learning Progress</span>
-                        <span className="text-xs text-gray-500">
-                            {Math.round(((stats.maturity.mature + stats.maturity.mastered) / stats.totalCards) * 100) || 0}% mastered
-                        </span>
-                    </div>
-                    <div className="h-2 rounded-full bg-gray-100 overflow-hidden flex">
-                        <div 
-                            className="bg-blue-400 transition-all" 
-                            style={{ width: `${(stats.maturity.new / stats.totalCards) * 100 || 0}%` }}
-                            title={`New: ${stats.maturity.new}`}
-                        />
-                        <div 
-                            className="bg-green-400 transition-all" 
-                            style={{ width: `${(stats.maturity.young / stats.totalCards) * 100 || 0}%` }}
-                            title={`Learning: ${stats.maturity.young}`}
-                        />
-                        <div 
-                            className="bg-purple-500 transition-all" 
-                            style={{ width: `${(stats.maturity.mature / stats.totalCards) * 100 || 0}%` }}
-                            title={`Mature: ${stats.maturity.mature}`}
-                        />
-                        <div 
-                            className="bg-yellow-400 transition-all" 
-                            style={{ width: `${(stats.maturity.mastered / stats.totalCards) * 100 || 0}%` }}
-                            title={`Mastered: ${stats.maturity.mastered}`}
-                        />
-                    </div>
-                    <div className="flex justify-between text-xs mt-2 text-gray-500">
-                        <span className="flex items-center gap-1">
-                            <span className="w-2 h-2 rounded-full bg-blue-400"></span> New ({stats.maturity.new})
-                        </span>
-                        <span className="flex items-center gap-1">
-                            <span className="w-2 h-2 rounded-full bg-green-400"></span> Learning ({stats.maturity.young})
-                        </span>
-                        <span className="flex items-center gap-1">
-                            <span className="w-2 h-2 rounded-full bg-purple-500"></span> Mature ({stats.maturity.mature})
-                        </span>
-                        <span className="flex items-center gap-1">
-                            <span className="w-2 h-2 rounded-full bg-yellow-400"></span> Mastered ({stats.maturity.mastered})
-                        </span>
-                    </div>
-                </div>
-            )}
-        </div>
-    );
-};
-
-// Main component
-const FlashcardDeck = ({ 
-    decks, 
-    stats, 
-    onStudy, 
-    onManage,
-    onCreateCard,
-    onDeleteDeck,
-    onRefresh 
-}) => {
+// Main FlashcardDeck component
+const FlashcardDeck = ({ decks, stats, onStudy, onManage, onCreateCard, onDeleteDeck, onRefresh, onAIGenerate }) => {
     const [showCreateModal, setShowCreateModal] = useState(false);
 
+    // Calculate totals for quick study
     const totalDue = decks.reduce((sum, d) => sum + d.dueCount, 0);
     const totalNew = decks.reduce((sum, d) => sum + d.newCount, 0);
 
     return (
-        <div className="max-w-6xl mx-auto">
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
             {/* Header */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-800">Flashcards</h1>
-                    <p className="text-gray-500">
-                        {totalDue + totalNew > 0 
-                            ? `${totalDue + totalNew} cards to review today`
-                            : 'All caught up! 🎉'}
-                    </p>
+                    <h2 className="text-2xl font-bold text-slate-900">Your Flashcards</h2>
+                    <p className="text-slate-500">Manage and study your flashcard decks</p>
                 </div>
-                <div className="flex gap-3">
-                    <button
-                        onClick={onRefresh}
-                        className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition flex items-center gap-2"
-                    >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" 
-                                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                        </svg>
-                        Refresh
-                    </button>
+                <div className="flex gap-2">
+                    {onAIGenerate && (
+                        <button
+                            onClick={onAIGenerate}
+                            className="px-5 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition flex items-center gap-2 font-semibold"
+                        >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                            </svg>
+                            AI Generate
+                        </button>
+                    )}
                     <button
                         onClick={() => setShowCreateModal(true)}
-                        className="px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center gap-2"
+                        className="px-5 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition flex items-center gap-2 font-semibold"
                     >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
-                        </svg>
+                        <Plus size={18} />
                         Add Card
                     </button>
                 </div>
             </div>
 
-            {/* Stats - compact and dynamic */}
-            <StatsWidget stats={stats} onStudyAll={() => onStudy(null)} />
-
-            {/* Quick study button */}
-            {(totalDue > 0 || totalNew > 0) && (
-                <div className="bg-gradient-to-r from-green-500 to-teal-500 rounded-xl p-6 mb-6 text-white">
+            {/* Quick study - only show if there are cards due or new */}
+            {totalDue + totalNew > 0 && (
+                <div className="mb-6 p-5 bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl border border-blue-100">
                     <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-                        <div>
-                            <h3 className="text-xl font-bold">Ready to Study?</h3>
-                            <p className="opacity-90">
-                                {totalDue + totalNew} cards from all your decks combined
-                            </p>
+                        <div className="flex items-center gap-3">
+                            <div className="p-3 bg-white rounded-xl shadow-sm">
+                                <BookOpen className="text-blue-600" size={24} />
+                            </div>
+                            <div>
+                                <h3 className="text-xl font-bold text-slate-900">Ready to Study?</h3>
+                                <p className="text-slate-600">
+                                    {totalDue + totalNew} cards from all your decks combined
+                                </p>
+                            </div>
                         </div>
                         <button
                             onClick={() => onStudy(null)}
-                            className="px-8 py-3 bg-white text-green-600 rounded-xl font-semibold hover:bg-green-50 transition"
-                            title="Study cards from all decks in one session"
+                            className="px-8 py-3 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition shadow-md"
                         >
                             Study All Cards
                         </button>
@@ -475,17 +357,20 @@ const FlashcardDeck = ({
                     ))}
                 </div>
             ) : (
-                <div className="text-center py-16 bg-gray-50 rounded-xl">
-                    <div className="text-5xl mb-4">📚</div>
-                    <h3 className="text-xl font-medium text-gray-800 mb-2">No Flashcards Yet</h3>
-                    <p className="text-gray-500 mb-6">
+                <div className="text-center py-16 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
+                    <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <BookOpen className="text-slate-400" size={32} />
+                    </div>
+                    <h3 className="text-xl font-bold text-slate-800 mb-2">No Flashcards Yet</h3>
+                    <p className="text-slate-500 mb-10">
                         Create your first flashcard to start learning with spaced repetition.
                     </p>
                     <button
                         onClick={() => setShowCreateModal(true)}
-                        className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                        className="px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition font-semibold inline-flex items-center gap-2"
                     >
-                        Create Your First Card
+                        <Plus size={18} />
+                        Create Your Flashcard
                     </button>
                 </div>
             )}

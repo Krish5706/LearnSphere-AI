@@ -7,6 +7,24 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { getDueCards, submitReview, evaluateAnswer } from '../../services/flashcardService';
+import { 
+    Loader2, 
+    CheckCircle, 
+    XCircle, 
+    AlertCircle,
+    Pencil,
+    Eye,
+    ChevronLeft,
+    ChevronRight,
+    Shuffle,
+    RotateCcw,
+    X,
+    Sparkles,
+    ArrowRight,
+    Trophy,
+    Star,
+    BookOpen
+} from 'lucide-react';
 import './Flashcard.css';
 
 // Mode selection screen (shown BEFORE study starts)
@@ -14,8 +32,8 @@ const ModeSelectionScreen = ({ onSelectMode, deckName, cardCount }) => {
     return (
         <div className="max-w-lg mx-auto py-12 px-4">
             <div className="text-center mb-8">
-                <h2 className="text-2xl font-bold text-gray-800 mb-2">Choose Study Mode</h2>
-                <p className="text-gray-500">{deckName || 'All Cards'} • {cardCount} cards</p>
+                <h2 className="text-2xl font-bold text-slate-800 mb-2">Choose Study Mode</h2>
+                <p className="text-slate-500">{deckName || 'All Cards'} • {cardCount} cards</p>
             </div>
 
             <div className="space-y-4">
@@ -25,17 +43,18 @@ const ModeSelectionScreen = ({ onSelectMode, deckName, cardCount }) => {
                     className="w-full p-6 bg-gradient-to-r from-blue-50 to-blue-100 border-2 border-blue-300 rounded-2xl hover:border-blue-500 hover:shadow-lg transition-all text-left group"
                 >
                     <div className="flex items-start gap-4">
-                        <span className="text-4xl">✏️</span>
+                        <div className="p-3 bg-white rounded-xl shadow-sm">
+                            <Pencil className="text-blue-600" size={24} />
+                        </div>
                         <div>
                             <h3 className="text-xl font-bold text-blue-800 group-hover:text-blue-900">
                                 Test Mode
                             </h3>
                             <p className="text-blue-600 mt-1">
-                                Type your answer → AI checks if you're correct
+                                Type your answer and get AI feedback
                             </p>
                             <p className="text-sm text-blue-500 mt-2">
-                                ✓ Handles typos & different wording<br/>
-                                ✓ Best for knowledge testing
+                                Handles typos and different wording
                             </p>
                         </div>
                     </div>
@@ -47,17 +66,18 @@ const ModeSelectionScreen = ({ onSelectMode, deckName, cardCount }) => {
                     className="w-full p-6 bg-gradient-to-r from-purple-50 to-purple-100 border-2 border-purple-300 rounded-2xl hover:border-purple-500 hover:shadow-lg transition-all text-left group"
                 >
                     <div className="flex items-start gap-4">
-                        <span className="text-4xl">👀</span>
+                        <div className="p-3 bg-white rounded-xl shadow-sm">
+                            <Eye className="text-purple-600" size={24} />
+                        </div>
                         <div>
                             <h3 className="text-xl font-bold text-purple-800 group-hover:text-purple-900">
                                 Review Mode
                             </h3>
                             <p className="text-purple-600 mt-1">
-                                Flip cards to study → No scoring
+                                Flip cards to study at your own pace
                             </p>
                             <p className="text-sm text-purple-500 mt-2">
-                                ✓ Just for learning<br/>
-                                ✓ Browse all cards freely
+                                No scoring, just for learning
                             </p>
                         </div>
                     </div>
@@ -93,7 +113,7 @@ const TestCard = ({ card, userAnswer, setUserAnswer, onSubmit, isAnswered, resul
                         Question
                     </span>
                 </div>
-                <p className="text-xl text-gray-800 text-center leading-relaxed font-medium py-6">
+                <p className="text-xl text-slate-800 text-center leading-relaxed font-medium py-6">
                     {card.front}
                 </p>
             </div>
@@ -107,7 +127,7 @@ const TestCard = ({ card, userAnswer, setUserAnswer, onSubmit, isAnswered, resul
                         onChange={(e) => setUserAnswer(e.target.value)}
                         onKeyDown={handleKeyPress}
                         placeholder="Type your answer here..."
-                        className="w-full px-6 py-4 text-lg border-2 border-gray-200 rounded-2xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition resize-none"
+                        className="w-full px-6 py-4 text-lg border-2 border-slate-200 rounded-2xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition resize-none"
                         rows="3"
                         disabled={isChecking}
                     />
@@ -118,14 +138,18 @@ const TestCard = ({ card, userAnswer, setUserAnswer, onSubmit, isAnswered, resul
                     >
                         {isChecking ? (
                             <>
-                                <span className="animate-spin">⏳</span> AI is checking...
+                                <Loader2 className="animate-spin h-5 w-5" /> 
+                                AI is checking...
                             </>
                         ) : (
-                            'Check Answer'
+                            <>
+                                <Sparkles size={20} />
+                                Check Answer
+                            </>
                         )}
                     </button>
-                    <p className="text-center text-gray-400 text-sm">
-                        Press Enter to submit • AI handles typos & different wording
+                    <p className="text-center text-slate-400 text-sm">
+                        Press Enter to submit • AI handles typos and different wording
                     </p>
                 </div>
             ) : (
@@ -138,13 +162,18 @@ const TestCard = ({ card, userAnswer, setUserAnswer, onSubmit, isAnswered, resul
                                 : 'bg-red-50 border-red-300'
                         }`}>
                             <div className="flex items-center gap-2 mb-2">
-                                <span className="text-2xl">{result.correct ? '✅' : '❌'}</span>
-                                <span className="font-semibold text-gray-700">Your Answer:</span>
+                                {result.correct ? (
+                                    <CheckCircle className="text-green-600" size={24} />
+                                ) : (
+                                    <XCircle className="text-red-600" size={24} />
+                                )}
+                                <span className="font-semibold text-slate-700">Your Answer:</span>
                             </div>
-                            <p className="text-lg text-gray-800">{userAnswer}</p>
+                            <p className="text-lg text-slate-800">{userAnswer}</p>
                             {result.feedback && (
-                                <p className="mt-2 text-sm text-gray-600 italic">
-                                    🤖 {result.feedback}
+                                <p className="mt-2 text-sm text-slate-600 italic flex items-center gap-2">
+                                    <Sparkles size={14} className="text-purple-500" />
+                                    {result.feedback}
                                 </p>
                             )}
                         </div>
@@ -153,12 +182,12 @@ const TestCard = ({ card, userAnswer, setUserAnswer, onSubmit, isAnswered, resul
                     {/* Correct Answer */}
                     <div className="p-6 rounded-2xl bg-emerald-50 border-2 border-emerald-300">
                         <div className="flex items-center gap-2 mb-2">
-                            <span className="text-2xl">📝</span>
+                            <CheckCircle className="text-emerald-600" size={24} />
                             <span className="font-semibold text-emerald-700">Correct Answer:</span>
                         </div>
-                        <p className="text-lg text-gray-800 font-medium">{card.back}</p>
+                        <p className="text-lg text-slate-800 font-medium">{card.back}</p>
                         {card.explanation && (
-                            <p className="mt-3 text-sm text-gray-600 border-t border-emerald-200 pt-3">
+                            <p className="mt-3 text-sm text-slate-600 border-t border-emerald-200 pt-3">
                                 <span className="font-medium">Explanation:</span> {card.explanation}
                             </p>
                         )}
@@ -174,7 +203,7 @@ const ReviewCard = ({ card, isFlipped, onFlip }) => {
     // Safety check - if no card, show error
     if (!card) {
         return (
-            <div className="w-full max-w-2xl mx-auto p-8 text-center text-gray-500">
+            <div className="w-full max-w-2xl mx-auto p-8 text-center text-slate-500">
                 No card data available
             </div>
         );
@@ -201,7 +230,7 @@ const ReviewCard = ({ card, isFlipped, onFlip }) => {
                 
                 {/* Content */}
                 <div className="flex-grow flex items-center justify-center py-8">
-                    <p className={`text-xl text-gray-800 text-center leading-relaxed ${
+                    <p className={`text-xl text-slate-800 text-center leading-relaxed ${
                         isFlipped ? 'font-semibold' : 'font-medium'
                     }`}>
                         {isFlipped ? (card.back || 'No answer available') : (card.front || 'No question available')}
@@ -211,15 +240,15 @@ const ReviewCard = ({ card, isFlipped, onFlip }) => {
                 {/* Explanation (only show on answer side) */}
                 {isFlipped && card.explanation && (
                     <div className="p-3 bg-white/70 rounded-xl border border-emerald-200 mb-4">
-                        <p className="text-sm text-gray-600">
+                        <p className="text-sm text-slate-600">
                             <span className="font-medium">Explanation:</span> {card.explanation}
                         </p>
                     </div>
                 )}
                 
                 {/* Click hint */}
-                <p className="text-center text-gray-400 text-sm">
-                    {isFlipped ? '👆 Click to flip back' : '👆 Click to reveal answer'}
+                <p className="text-center text-slate-400 text-sm">
+                    {isFlipped ? 'Click to flip back' : 'Click to reveal answer'}
                 </p>
             </div>
         </div>
@@ -233,27 +262,23 @@ const NavigationControls = ({ currentIndex, total, onPrev, onNext, onShuffle }) 
             <button
                 onClick={onPrev}
                 disabled={currentIndex === 0}
-                className="p-3 rounded-xl bg-gray-100 text-gray-600 hover:bg-gray-200 disabled:opacity-40 disabled:cursor-not-allowed transition-all hover:scale-105 active:scale-95"
+                className="p-3 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 disabled:opacity-40 disabled:cursor-not-allowed transition-all hover:scale-105 active:scale-95"
                 title="Previous card"
             >
-                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
+                <ChevronLeft size={24} />
             </button>
             
-            <div className="px-6 py-3 bg-gray-100 rounded-xl text-gray-700 font-semibold min-w-[100px] text-center">
+            <div className="px-6 py-3 bg-slate-100 rounded-xl text-slate-700 font-semibold min-w-[100px] text-center">
                 {currentIndex + 1} / {total}
             </div>
             
             <button
                 onClick={onNext}
                 disabled={currentIndex === total - 1}
-                className="p-3 rounded-xl bg-gray-100 text-gray-600 hover:bg-gray-200 disabled:opacity-40 disabled:cursor-not-allowed transition-all hover:scale-105 active:scale-95"
+                className="p-3 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 disabled:opacity-40 disabled:cursor-not-allowed transition-all hover:scale-105 active:scale-95"
                 title="Next card"
             >
-                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
+                <ChevronRight size={24} />
             </button>
             
             <button
@@ -261,9 +286,7 @@ const NavigationControls = ({ currentIndex, total, onPrev, onNext, onShuffle }) 
                 className="p-3 rounded-xl bg-purple-100 text-purple-600 hover:bg-purple-200 transition-all hover:scale-105 active:scale-95 ml-2"
                 title="Shuffle cards"
             >
-                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
+                <Shuffle size={24} />
             </button>
         </div>
     );
@@ -276,17 +299,17 @@ const ProgressBar = ({ current, total, correct, incorrect }) => {
     return (
         <div className="mb-8 max-w-2xl mx-auto">
             <div className="flex justify-between text-sm mb-3">
-                <span className="text-gray-600 font-medium">Card {current} of {total}</span>
+                <span className="text-slate-600 font-medium">Card {current} of {total}</span>
                 <span className="flex gap-4">
                     <span className="text-green-600 font-semibold flex items-center gap-1">
-                        <span>✅</span> {correct} knew
+                        <CheckCircle size={16} /> {correct} knew
                     </span>
                     <span className="text-red-600 font-semibold flex items-center gap-1">
-                        <span>❌</span> {incorrect} learning
+                        <XCircle size={16} /> {incorrect} learning
                     </span>
                 </span>
             </div>
-            <div className="h-3 bg-gray-200 rounded-full overflow-hidden shadow-inner">
+            <div className="h-3 bg-slate-200 rounded-full overflow-hidden shadow-inner">
                 <div 
                     className="h-full bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 transition-all duration-500 ease-out"
                     style={{ width: `${progress}%` }}
@@ -304,42 +327,49 @@ const SessionComplete = ({ stats, onRestart, onClose }) => {
 
     return (
         <div className="text-center py-16 px-6">
-            <div className="text-8xl mb-6">
-                {accuracy >= 80 ? '🏆' : accuracy >= 60 ? '🌟' : '💪'}
+            <div className="w-24 h-24 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center mx-auto mb-6">
+                {accuracy >= 80 ? (
+                    <Trophy className="text-white" size={48} />
+                ) : accuracy >= 60 ? (
+                    <Star className="text-white" size={48} />
+                ) : (
+                    <BookOpen className="text-white" size={48} />
+                )}
             </div>
-            <h2 className="text-3xl font-bold text-gray-800 mb-3">
+            <h2 className="text-3xl font-bold text-slate-800 mb-3">
                 Well Done!
             </h2>
-            <p className="text-gray-600 text-lg mb-8">
+            <p className="text-slate-600 text-lg mb-8">
                 You've completed this study session!
             </p>
             
             <div className="grid grid-cols-3 gap-6 max-w-lg mx-auto mb-10">
-                <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl p-6 shadow-sm">
+                <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl p-6 shadow-sm border border-blue-200">
                     <div className="text-3xl font-bold text-blue-600">{stats.total}</div>
-                    <div className="text-sm text-gray-600 mt-1">Total Cards</div>
+                    <div className="text-sm text-slate-600 mt-1">Total Cards</div>
                 </div>
-                <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-2xl p-6 shadow-sm">
+                <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-2xl p-6 shadow-sm border border-green-200">
                     <div className="text-3xl font-bold text-green-600">{stats.correct}</div>
-                    <div className="text-sm text-gray-600 mt-1">Knew Already</div>
+                    <div className="text-sm text-slate-600 mt-1">Knew Already</div>
                 </div>
-                <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-2xl p-6 shadow-sm">
+                <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-2xl p-6 shadow-sm border border-purple-200">
                     <div className="text-3xl font-bold text-purple-600">{accuracy}%</div>
-                    <div className="text-sm text-gray-600 mt-1">Success Rate</div>
+                    <div className="text-sm text-slate-600 mt-1">Success Rate</div>
                 </div>
             </div>
 
             <div className="flex gap-4 justify-center">
                 <button
                     onClick={onClose}
-                    className="px-8 py-4 bg-gray-200 text-gray-700 rounded-xl hover:bg-gray-300 transition font-semibold"
+                    className="px-8 py-4 bg-slate-200 text-slate-700 rounded-xl hover:bg-slate-300 transition font-semibold"
                 >
                     Done
                 </button>
                 <button
                     onClick={onRestart}
-                    className="px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:from-blue-700 hover:to-purple-700 transition font-semibold"
+                    className="px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:from-blue-700 hover:to-purple-700 transition font-semibold flex items-center gap-2"
                 >
+                    <RotateCcw size={20} />
                     Study Again
                 </button>
             </div>
@@ -584,8 +614,8 @@ const StudySession = ({
     if (isLoading) {
         return (
             <div className="flex flex-col items-center justify-center py-20">
-                <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-600 border-t-transparent mb-4"></div>
-                <p className="text-gray-600 text-lg">Loading flashcards...</p>
+                <Loader2 className="animate-spin text-blue-600 mb-4" size={48} />
+                <p className="text-slate-600 text-lg font-medium">Loading flashcards...</p>
             </div>
         );
     }
@@ -593,8 +623,8 @@ const StudySession = ({
     // Error state
     if (error) {
         return (
-            <div className="text-center py-20">
-                <div className="text-6xl mb-4">😕</div>
+            <div className="flex flex-col items-center justify-center py-20">
+                <AlertCircle className="text-red-600 mb-4" size={48} />
                 <p className="text-red-600 text-lg mb-6">{error}</p>
                 <button 
                     onClick={loadCards}
@@ -609,12 +639,14 @@ const StudySession = ({
     // No cards state
     if (cards.length === 0) {
         return (
-            <div className="text-center py-20">
-                <div className="text-6xl mb-4">📚</div>
-                <h2 className="text-2xl font-bold text-gray-800 mb-2">
+            <div className="flex flex-col items-center justify-center py-20">
+                <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mb-4">
+                    <BookOpen className="text-slate-400" size={40} />
+                </div>
+                <h2 className="text-2xl font-bold text-slate-800 mb-2">
                     No Flashcards Yet
                 </h2>
-                <p className="text-gray-600 mb-6">
+                <p className="text-slate-600 mb-6">
                     Generate flashcards from a document to start studying!
                 </p>
                 <button 
@@ -632,15 +664,12 @@ const StudySession = ({
         return (
             <div className="max-w-4xl mx-auto px-4 py-8">
                 <div className="flex justify-between items-center mb-6">
-                    <h2 className="text-2xl font-bold text-gray-800">Study Session</h2>
+                    <h2 className="text-2xl font-bold text-slate-800">Study Session</h2>
                     <button
                         onClick={onClose}
-                        className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition flex items-center gap-2"
+                        className="p-2 text-slate-500 hover:bg-slate-100 rounded-xl transition"
                     >
-                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                        Close
+                        <X size={24} />
                     </button>
                 </div>
                 <ModeSelectionScreen 
@@ -668,28 +697,31 @@ const StudySession = ({
         // Review mode - simple completion message
         return (
             <div className="max-w-lg mx-auto text-center py-16">
-                <div className="text-6xl mb-6">📖</div>
-                <h2 className="text-2xl font-bold text-gray-800 mb-2">
+                <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <CheckCircle className="text-green-600" size={40} />
+                </div>
+                <h2 className="text-2xl font-bold text-slate-800 mb-2">
                     Review Complete!
                 </h2>
-                <p className="text-gray-600 mb-8">
+                <p className="text-slate-600 mb-8">
                     You've reviewed all {cards.length} cards in this deck.
                 </p>
                 <div className="flex justify-center gap-4">
                     <button
                         onClick={handleRestart}
-                        className="px-6 py-3 bg-purple-600 text-white rounded-xl hover:bg-purple-700 font-medium"
+                        className="px-6 py-3 bg-purple-600 text-white rounded-xl hover:bg-purple-700 font-medium flex items-center gap-2"
                     >
+                        <RotateCcw size={18} />
                         Review Again
                     </button>
                     <button
                         onClick={onClose}
-                        className="px-6 py-3 bg-gray-200 text-gray-700 rounded-xl hover:bg-gray-300 font-medium"
+                        className="px-6 py-3 bg-slate-200 text-slate-700 rounded-xl hover:bg-slate-300 font-medium"
                     >
                         Done
                     </button>
                 </div>
-                <p className="mt-6 text-sm text-gray-500">
+                <p className="mt-6 text-sm text-slate-500">
                     Ready to test your knowledge? Switch to Test Mode!
                 </p>
             </div>
@@ -704,19 +736,24 @@ const StudySession = ({
             {/* Header */}
             <div className="flex justify-between items-center mb-6">
                 <div>
-                    <h2 className="text-2xl font-bold text-gray-800">Study Session</h2>
-                    <p className="text-gray-500">
-                        {deck || 'All Cards'} • {studyMode === 'test' ? '✏️ Test Mode' : '👀 Review Mode'}
+                    <h2 className="text-2xl font-bold text-slate-800">Study Session</h2>
+                    <p className="text-slate-500 flex items-center gap-2">
+                        {deck || 'All Cards'} • {studyMode === 'test' ? (
+                            <span className="flex items-center gap-1">
+                                <Pencil size={16} /> Test Mode
+                            </span>
+                        ) : (
+                            <span className="flex items-center gap-1">
+                                <Eye size={16} /> Review Mode
+                            </span>
+                        )}
                     </p>
                 </div>
                 <button
                     onClick={onClose}
-                    className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition flex items-center gap-2"
+                    className="p-2 text-slate-500 hover:bg-slate-100 rounded-xl transition"
                 >
-                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                    Close
+                    <X size={24} />
                 </button>
             </div>
 
@@ -730,11 +767,11 @@ const StudySession = ({
                 />
             ) : (
                 <div className="mb-6">
-                    <div className="flex justify-between text-sm text-gray-500 mb-2">
+                    <div className="flex justify-between text-sm text-slate-500 mb-2">
                         <span>Card {currentIndex + 1} of {cards.length}</span>
                         <span>{Math.round(((currentIndex + 1) / cards.length) * 100)}% complete</span>
                     </div>
-                    <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                    <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
                         <div 
                             className="h-full bg-purple-500 transition-all duration-300"
                             style={{ width: `${((currentIndex + 1) / cards.length) * 100}%` }}
@@ -775,21 +812,21 @@ const StudySession = ({
             />
 
             {/* Keyboard shortcuts help */}
-            <div className="text-center text-gray-400 text-sm mt-8">
+            <div className="text-center text-slate-400 text-sm mt-8">
                 {studyMode === 'test' ? (
                     <span className="flex items-center justify-center gap-2">
-                        <kbd className="px-2 py-1 bg-gray-100 rounded text-xs font-mono">Enter</kbd> 
+                        <kbd className="px-2 py-1 bg-slate-100 rounded text-xs font-mono">Enter</kbd> 
                         Check Answer (AI-powered)
                     </span>
                 ) : (
                     <div className="flex items-center justify-center gap-4 flex-wrap">
                         <span className="flex items-center gap-1">
-                            <kbd className="px-2 py-1 bg-gray-100 rounded text-xs font-mono">Space</kbd> 
+                            <kbd className="px-2 py-1 bg-slate-100 rounded text-xs font-mono">Space</kbd> 
                             Flip
                         </span>
                         <span className="flex items-center gap-1">
-                            <kbd className="px-2 py-1 bg-gray-100 rounded text-xs font-mono">←</kbd> 
-                            <kbd className="px-2 py-1 bg-gray-100 rounded text-xs font-mono">→</kbd> 
+                            <kbd className="px-2 py-1 bg-slate-100 rounded text-xs font-mono">←</kbd> 
+                            <kbd className="px-2 py-1 bg-slate-100 rounded text-xs font-mono">→</kbd> 
                             Navigate
                         </span>
                     </div>

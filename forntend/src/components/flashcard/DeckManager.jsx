@@ -6,6 +6,18 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { getDueCards, deleteFlashcard, updateFlashcard } from '../../services/flashcardService';
+import { 
+    Loader2, 
+    AlertCircle, 
+    X, 
+    ChevronLeft, 
+    Play,
+    Search,
+    Edit3,
+    Trash2,
+    Check,
+    BookOpen
+} from 'lucide-react';
 
 // Edit Card Modal
 const EditCardModal = ({ card, isOpen, onClose, onSave }) => {
@@ -35,49 +47,62 @@ const EditCardModal = ({ card, isOpen, onClose, onSave }) => {
     return (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl">
-                <div className="p-6 border-b">
-                    <h2 className="text-xl font-bold text-gray-800">Edit Card</h2>
+                <div className="p-6 border-b border-slate-100">
+                    <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                        <Edit3 size={20} className="text-blue-600" />
+                        Edit Card
+                    </h2>
                 </div>
                 
                 <div className="p-6 space-y-4">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium text-slate-700 mb-1">
                             Question (Front)
                         </label>
                         <textarea
                             value={front}
                             onChange={(e) => setFront(e.target.value)}
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 resize-none"
+                            className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none"
                             rows={3}
                         />
                     </div>
                     
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium text-slate-700 mb-1">
                             Answer (Back)
                         </label>
                         <textarea
                             value={back}
                             onChange={(e) => setBack(e.target.value)}
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 resize-none"
+                            className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none"
                             rows={3}
                         />
                     </div>
                 </div>
 
-                <div className="p-6 border-t flex justify-end gap-3">
+                <div className="p-6 border-t border-slate-100 flex justify-end gap-3">
                     <button
                         onClick={onClose}
-                        className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+                        className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-xl transition"
                     >
                         Cancel
                     </button>
                     <button
                         onClick={handleSave}
                         disabled={isSaving || !front.trim() || !back.trim()}
-                        className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                        className="px-6 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:opacity-50 font-semibold flex items-center gap-2"
                     >
-                        {isSaving ? 'Saving...' : 'Save'}
+                        {isSaving ? (
+                            <>
+                                <Loader2 className="animate-spin h-4 w-4" />
+                                Saving...
+                            </>
+                        ) : (
+                            <>
+                                <Check size={16} />
+                                Save
+                            </>
+                        )}
                     </button>
                 </div>
             </div>
@@ -109,33 +134,33 @@ const CardItem = ({ card, onEdit, onDelete }) => {
     };
 
     return (
-        <div className="bg-white rounded-xl border border-gray-200 p-4 hover:shadow-md transition">
+        <div className="bg-white rounded-2xl border border-slate-100 p-4 hover:shadow-md transition-all">
             <div className="flex items-start justify-between gap-4">
                 <div className="flex-1 min-w-0">
                     {/* Question */}
                     <div className="mb-3">
-                        <span className="text-xs font-medium text-gray-500 uppercase">Question</span>
-                        <p className="text-gray-800 mt-1">{card.front}</p>
+                        <span className="text-xs font-medium text-slate-500 uppercase">Question</span>
+                        <p className="text-slate-800 mt-1">{card.front}</p>
                     </div>
                     
                     {/* Answer */}
                     <div className="mb-3">
-                        <span className="text-xs font-medium text-gray-500 uppercase">Answer</span>
-                        <p className="text-gray-600 mt-1">{card.back}</p>
+                        <span className="text-xs font-medium text-slate-500 uppercase">Answer</span>
+                        <p className="text-slate-600 mt-1">{card.back}</p>
                     </div>
 
                     {/* Status & Stats */}
                     <div className="flex items-center gap-3 text-xs">
-                        <span className={`px-2 py-1 rounded-full ${statusColors[card.status] || 'bg-gray-100 text-gray-600'}`}>
+                        <span className={`px-2 py-1 rounded-full ${statusColors[card.status] || 'bg-slate-100 text-slate-600'}`}>
                             {card.status || 'new'}
                         </span>
                         {card.reviewCount > 0 && (
-                            <span className="text-gray-500">
+                            <span className="text-slate-500">
                                 Reviewed {card.reviewCount}x
                             </span>
                         )}
                         {card.nextReviewDate && (
-                            <span className="text-gray-500">
+                            <span className="text-slate-500">
                                 Next: {new Date(card.nextReviewDate).toLocaleDateString()}
                             </span>
                         )}
@@ -146,12 +171,10 @@ const CardItem = ({ card, onEdit, onDelete }) => {
                 <div className="flex flex-col gap-2">
                     <button
                         onClick={() => onEdit(card)}
-                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-xl transition"
                         title="Edit"
                     >
-                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                        </svg>
+                        <Edit3 size={18} />
                     </button>
                     
                     {showConfirm ? (
@@ -159,32 +182,26 @@ const CardItem = ({ card, onEdit, onDelete }) => {
                             <button
                                 onClick={handleDelete}
                                 disabled={isDeleting}
-                                className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
+                                className="p-2 text-green-600 hover:bg-green-50 rounded-xl transition"
                                 title="Confirm delete"
                             >
-                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                </svg>
+                                <Check size={18} />
                             </button>
                             <button
                                 onClick={() => setShowConfirm(false)}
-                                className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition"
+                                className="p-2 text-slate-600 hover:bg-slate-100 rounded-xl transition"
                                 title="Cancel"
                             >
-                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                </svg>
+                                <X size={18} />
                             </button>
                         </div>
                     ) : (
                         <button
                             onClick={() => setShowConfirm(true)}
-                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
+                            className="p-2 text-red-600 hover:bg-red-50 rounded-xl transition"
                             title="Delete"
                         >
-                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
+                            <Trash2 size={18} />
                         </button>
                     )}
                 </div>
@@ -273,20 +290,20 @@ const DeckManager = ({ deckName, onClose, onStudy }) => {
     if (isLoading) {
         return (
             <div className="flex flex-col items-center justify-center py-20">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
-                <p className="text-gray-600">Loading cards...</p>
+                <Loader2 className="animate-spin text-blue-600 mb-4" size={40} />
+                <p className="text-slate-600 font-medium">Loading cards...</p>
             </div>
         );
     }
 
     if (error) {
         return (
-            <div className="text-center py-16">
-                <div className="text-4xl mb-4">❌</div>
+            <div className="flex flex-col items-center justify-center py-20">
+                <AlertCircle className="text-red-600 mb-4" size={40} />
                 <p className="text-red-600 mb-4">{error}</p>
                 <button 
                     onClick={loadCards}
-                    className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                    className="px-6 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 font-semibold"
                 >
                     Retry
                 </button>
@@ -301,45 +318,40 @@ const DeckManager = ({ deckName, onClose, onStudy }) => {
                 <div className="flex items-center gap-4">
                     <button
                         onClick={onClose}
-                        className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition"
+                        className="p-2 text-slate-600 hover:bg-slate-100 rounded-xl transition"
                     >
-                        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                        </svg>
+                        <ChevronLeft size={24} />
                     </button>
                     <div>
-                        <h1 className="text-2xl font-bold text-gray-800">{deckName}</h1>
-                        <p className="text-gray-500 text-sm">{cards.length} cards</p>
+                        <h1 className="text-2xl font-bold text-slate-900">{deckName}</h1>
+                        <p className="text-slate-500 text-sm">{cards.length} cards</p>
                     </div>
                 </div>
                 
                 <button
                     onClick={() => onStudy(deckName)}
-                    className="px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center gap-2"
+                    className="px-5 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition flex items-center gap-2 font-semibold"
                 >
-                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
+                    <Play size={18} />
                     Study Now
                 </button>
             </div>
 
             {/* Stats */}
             <div className="grid grid-cols-4 gap-4 mb-6">
-                <div className="bg-white rounded-xl p-4 border border-gray-200 text-center">
-                    <div className="text-2xl font-bold text-gray-800">{stats.total}</div>
-                    <div className="text-sm text-gray-500">Total</div>
+                <div className="bg-white rounded-2xl p-4 border border-slate-100 text-center shadow-sm">
+                    <div className="text-2xl font-bold text-slate-800">{stats.total}</div>
+                    <div className="text-sm text-slate-500">Total</div>
                 </div>
-                <div className="bg-blue-50 rounded-xl p-4 border border-blue-200 text-center">
+                <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl p-4 border border-blue-200 text-center">
                     <div className="text-2xl font-bold text-blue-600">{stats.new}</div>
                     <div className="text-sm text-blue-600">New</div>
                 </div>
-                <div className="bg-yellow-50 rounded-xl p-4 border border-yellow-200 text-center">
+                <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-2xl p-4 border border-yellow-200 text-center">
                     <div className="text-2xl font-bold text-yellow-600">{stats.learning}</div>
                     <div className="text-sm text-yellow-600">Learning</div>
                 </div>
-                <div className="bg-green-50 rounded-xl p-4 border border-green-200 text-center">
+                <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-2xl p-4 border border-green-200 text-center">
                     <div className="text-2xl font-bold text-green-600">{stats.review}</div>
                     <div className="text-sm text-green-600">Review</div>
                 </div>
@@ -347,20 +359,25 @@ const DeckManager = ({ deckName, onClose, onStudy }) => {
 
             {/* Search */}
             <div className="mb-6">
-                <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search cards..."
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
+                <div className="relative">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+                    <input
+                        type="text"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        placeholder="Search cards..."
+                        className="w-full pl-12 pr-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    />
+                </div>
             </div>
 
             {/* Cards List */}
             {filteredCards.length === 0 ? (
-                <div className="text-center py-12 bg-gray-50 rounded-xl">
-                    <div className="text-4xl mb-3">📭</div>
-                    <p className="text-gray-600">
+                <div className="text-center py-12 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
+                    <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <BookOpen className="text-slate-400" size={32} />
+                    </div>
+                    <p className="text-slate-600">
                         {searchQuery ? 'No cards match your search' : 'No cards in this deck'}
                     </p>
                 </div>
