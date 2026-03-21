@@ -7,7 +7,6 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useNavigate, useLocation } from 'react-router-dom';
-import { Loader2 } from 'lucide-react';
 import FlashcardDeck from '../components/flashcard/FlashcardDeck';
 import StudySession from '../components/flashcard/StudySession';
 import DeckManager from '../components/flashcard/DeckManager';
@@ -32,10 +31,10 @@ const AIGenerationModal = ({ isOpen, onClose, onGenerate, documents }) => {
 
     const handleGenerate = async () => {
         if (!selectedDoc) return;
-
+        
         setIsGenerating(true);
         setResult(null);
-
+        
         try {
             const response = await generateFlashcards({
                 documentId: selectedDoc,
@@ -44,17 +43,17 @@ const AIGenerationModal = ({ isOpen, onClose, onGenerate, documents }) => {
                 deck,
                 autoSave: true
             });
-
+            
             setResult({
                 success: true,
                 message: `Generated ${response.data.count} flashcards!`
             });
-
+            
             setTimeout(() => {
                 onGenerate();
                 onClose();
             }, 1500);
-
+            
         } catch (error) {
             setResult({
                 success: false,
@@ -68,25 +67,25 @@ const AIGenerationModal = ({ isOpen, onClose, onGenerate, documents }) => {
     return (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl">
-                <div className="p-6 border-b border-slate-200">
-                    <h2 className="text-xl font-bold text-slate-900">
-                        Generate Flashcards with AI
+                <div className="p-6 border-b">
+                    <h2 className="text-xl font-bold text-gray-800">
+                        🤖 Generate Flashcards with AI
                     </h2>
-                    <p className="text-slate-500 text-sm mt-1">
+                    <p className="text-gray-500 text-sm mt-1">
                         Automatically create flashcards from your documents
                     </p>
                 </div>
-
-                <div className="p-6 space-y-5">
+                
+                <div className="p-6 space-y-4">
                     {/* Document selection */}
                     <div>
-                        <label className="block text-sm font-bold text-slate-700 mb-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
                             Select Document *
                         </label>
                         <select
                             value={selectedDoc}
                             onChange={(e) => setSelectedDoc(e.target.value)}
-                            className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-white"
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                         >
                             <option value="">Choose a document...</option>
                             {documents.map(doc => (
@@ -99,7 +98,7 @@ const AIGenerationModal = ({ isOpen, onClose, onGenerate, documents }) => {
 
                     {/* Number of cards */}
                     <div>
-                        <label className="block text-sm font-bold text-slate-700 mb-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
                             Number of Cards: {count}
                         </label>
                         <input
@@ -108,9 +107,9 @@ const AIGenerationModal = ({ isOpen, onClose, onGenerate, documents }) => {
                             max="30"
                             value={count}
                             onChange={(e) => setCount(parseInt(e.target.value))}
-                            className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                            className="w-full"
                         />
-                        <div className="flex justify-between text-xs text-slate-400 font-medium mt-1">
+                        <div className="flex justify-between text-xs text-gray-400">
                             <span>5</span>
                             <span>30</span>
                         </div>
@@ -118,7 +117,7 @@ const AIGenerationModal = ({ isOpen, onClose, onGenerate, documents }) => {
 
                     {/* Difficulty */}
                     <div>
-                        <label className="block text-sm font-bold text-slate-700 mb-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
                             Difficulty Level
                         </label>
                         <div className="flex gap-2">
@@ -126,10 +125,11 @@ const AIGenerationModal = ({ isOpen, onClose, onGenerate, documents }) => {
                                 <button
                                     key={level}
                                     onClick={() => setDifficulty(level)}
-                                    className={`flex-1 py-2.5 px-4 rounded-xl capitalize font-bold text-sm transition ${difficulty === level
-                                            ? 'bg-blue-600 text-white shadow-md'
-                                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                                        }`}
+                                    className={`flex-1 py-2 px-4 rounded-lg capitalize transition ${
+                                        difficulty === level
+                                            ? 'bg-blue-600 text-white'
+                                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                    }`}
                                 >
                                     {level}
                                 </button>
@@ -139,58 +139,48 @@ const AIGenerationModal = ({ isOpen, onClose, onGenerate, documents }) => {
 
                     {/* Deck name */}
                     <div>
-                        <label className="block text-sm font-bold text-slate-700 mb-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
                             Save to Deck
                         </label>
                         <input
                             type="text"
                             value={deck}
                             onChange={(e) => setDeck(e.target.value)}
-                            className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-white"
-                            placeholder="AI Generated"
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                            placeholder="Deck name..."
                         />
                     </div>
 
                     {/* Result message */}
                     {result && (
-                        <div className={`p-4 rounded-xl ${result.success ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200'
-                            }`}>
-                            <div className="flex items-center gap-2 font-medium">
-                                {result.success ? (
-                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                    </svg>
-                                ) : (
-                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                    </svg>
-                                )}
-                                {result.message}
-                            </div>
+                        <div className={`p-4 rounded-lg ${
+                            result.success ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'
+                        }`}>
+                            {result.success ? '✅' : '❌'} {result.message}
                         </div>
                     )}
                 </div>
 
-                <div className="p-6 border-t border-slate-200 bg-slate-50 rounded-b-2xl flex justify-end gap-3">
+                <div className="p-6 border-t bg-gray-50 rounded-b-2xl flex justify-end gap-3">
                     <button
                         onClick={onClose}
                         disabled={isGenerating}
-                        className="px-6 py-2.5 text-slate-600 hover:bg-slate-200 rounded-xl font-bold transition disabled:opacity-50"
+                        className="px-6 py-2 text-gray-600 hover:bg-gray-200 rounded-lg transition disabled:opacity-50"
                     >
                         Cancel
                     </button>
                     <button
                         onClick={handleGenerate}
                         disabled={!selectedDoc || isGenerating}
-                        className="px-6 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 font-bold shadow-md"
+                        className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                     >
                         {isGenerating ? (
                             <>
-                                <Loader2 className="animate-spin" size={18} />
+                                <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
                                 Generating...
                             </>
                         ) : (
-                            <>Generate Cards</>
+                            <>🤖 Generate Cards</>
                         )}
                     </button>
                 </div>
@@ -211,7 +201,7 @@ const Flashcards = () => {
     const [documents, setDocuments] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
-
+    
     // UI State
     const [view, setView] = useState('decks'); // 'decks' | 'study' | 'manage'
     const [studyDeck, setStudyDeck] = useState(null);
@@ -237,7 +227,7 @@ const Flashcards = () => {
     const loadData = useCallback(async () => {
         setIsLoading(true);
         setError(null);
-
+        
         try {
             const [decksRes, statsRes] = await Promise.all([
                 getDecks(),
@@ -279,6 +269,18 @@ const Flashcards = () => {
         loadData();
     }, [loadData]);
 
+    // Handle URL params for study mode
+    useEffect(() => {
+        const mode = searchParams.get('mode');
+        const deck = searchParams.get('deck');
+        
+        if (mode === 'study') {
+            setView('study');
+            setStudyDeck(deck);
+        }
+    }, [searchParams]);
+
+    // Handlers
     const handleStudy = (deckName) => {
         setStudyDeck(deckName);
         setView('study');
@@ -342,7 +344,7 @@ const Flashcards = () => {
             <div className="text-center py-16">
                 <div className="text-4xl mb-4">❌</div>
                 <p className="text-red-600 mb-4">{error}</p>
-                <button
+                <button 
                     onClick={loadData}
                     className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                 >
@@ -371,9 +373,9 @@ const Flashcards = () => {
                     <div className="flex justify-end mb-4">
                         <button
                             onClick={() => setShowAIModal(true)}
-                            className="px-5 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all duration-300 flex items-center gap-2 shadow-md"
-                            aria-label="Generate with AI"
+                            className="px-5 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 transition flex items-center gap-2 shadow-md"
                         >
+                            <span>🤖</span>
                             AI Generate
                         </button>
                     </div>

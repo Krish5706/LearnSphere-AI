@@ -9,6 +9,7 @@ import QuizListNew from '../components/quiz/QuizListNew';
 import Notes from '../components/Notes';
 import Roadmap from '../components/Roadmap';
 import EnhancedRoadmap from '../components/EnhancedRoadmap';
+import PremiumPlansModal from '../components/common/PremiumPlansModal';
 import { FlashcardGenerator } from '../components/flashcard';
 import { FileText, BrainCircuit, GraduationCap, Loader2, ChevronLeft, Lock, Sparkles, BarChart3, BookText, Map, Layers } from 'lucide-react';
 
@@ -20,6 +21,7 @@ const Document = () => {
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('summary');
     const [summaryType, setSummaryType] = useState('short');
+    const [showPremiumModal, setShowPremiumModal] = useState(false);
 
     const handleDownloadReport = async (reportType) => {
         try {
@@ -223,12 +225,13 @@ const Document = () => {
                                     <p className="text-slate-500 mb-6 text-sm">
                                         You've used your 5 free credits. Subscribe now to unlock Quizzes and Unlimited PDF processing.
                                     </p>
-                                    <Link
-                                        to="/pricing"
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPremiumModal(true)}
                                         className="block w-full py-4 bg-blue-600 text-white rounded-2xl font-bold shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all"
                                     >
-                                        Upgrade to Pro
-                                    </Link>
+                                        View Premium Plans
+                                    </button>
                                 </div>
                             </div>
                         )}
@@ -252,6 +255,12 @@ const Document = () => {
                     />
                 )}
             </div>
+
+            <PremiumPlansModal
+                isOpen={showPremiumModal}
+                onClose={() => setShowPremiumModal(false)}
+                title="Unlock Quizzes and Unlimited Credits"
+            />
         </div>
     );
 };

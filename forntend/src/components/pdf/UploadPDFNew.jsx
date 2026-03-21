@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Upload, FileText, Sparkles, X, Loader2, AlertCircle, CheckCircle } from 'lucide-react';
 import api from '../../services/api';
 import ProcessingOptions from './ProcessingOptions';
+import PremiumPlansModal from '../common/PremiumPlansModal';
 
 const UploadPDF = () => {
     const { user, setUser, canUseAI } = useAuth();
@@ -16,6 +17,7 @@ const UploadPDF = () => {
     const [uploadedDocId, setUploadedDocId] = useState(null);
     const [uploadSuccess, setUploadSuccess] = useState(false);
     const [isDragOver, setIsDragOver] = useState(false);
+    const [showPremiumModal, setShowPremiumModal] = useState(false);
     const fileInputRef = useRef(null);
 
     const handleFileChange = (e) => {
@@ -30,7 +32,11 @@ const UploadPDF = () => {
 
     const handleUpload = async (e) => {
         e.preventDefault();
-        if (!file || !canUseAI) return;
+        if (!file) return;
+        if (!canUseAI) {
+            setShowPremiumModal(true);
+            return;
+        }
 
         setIsUploading(true);
         const formData = new FormData();
@@ -148,11 +154,11 @@ const UploadPDF = () => {
 
                             <button 
                                 onClick={handleUpload}
-                                disabled={isUploading || !canUseAI}
+                                disabled={isUploading}
                                 className={`w-full py-4 rounded-2xl font-black text-lg shadow-lg flex items-center justify-center gap-3 transition-all ${
                                     canUseAI 
                                     ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-blue-200' 
-                                    : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                                    : 'bg-amber-500 text-white hover:bg-amber-400 shadow-amber-200'
                                 }`}
                             >
                                 {isUploading ? (
@@ -187,6 +193,12 @@ const UploadPDF = () => {
                     onCancel={handleCancel}
                 />
             )}
+
+            <PremiumPlansModal
+                isOpen={showPremiumModal}
+                onClose={() => setShowPremiumModal(false)}
+                title="Your Free Credits Are Finished"
+            />
         </div>
     );
 };

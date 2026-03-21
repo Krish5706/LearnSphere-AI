@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { getUserDocuments, deleteDocument } from '../services/api';
 import { getTodoStats, getTodos } from '../services/todoService';
-import { FileText, Trash2, Calendar, LayoutGrid, List, Search, Loader2, CheckCircle2, Clock, AlertCircle, BookMarked } from 'lucide-react';
+import { FileText, Trash2, Calendar, LayoutGrid, List, Search, Loader2, CheckCircle2, Clock, AlertCircle, BookMarked, Crown, Sparkles } from 'lucide-react';
+import PremiumPlansModal from '../components/common/PremiumPlansModal';
 
 const Dashboard = () => {
     const [docs, setDocs] = useState([]);
@@ -10,6 +11,7 @@ const Dashboard = () => {
     const [todoStats, setTodoStats] = useState(null);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+    const [showPremiumModal, setShowPremiumModal] = useState(false);
 
     useEffect(() => {
         fetchData();
@@ -113,6 +115,26 @@ const Dashboard = () => {
                     </div>
                 </div>
             )}
+
+            <div className="mb-10 rounded-3xl border border-amber-200 bg-gradient-to-r from-amber-50 via-orange-50 to-yellow-50 p-6 md:p-8 flex flex-col md:flex-row md:items-center md:justify-between gap-5">
+                <div>
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wide bg-amber-100 text-amber-700 border border-amber-200 mb-3">
+                        <Crown size={14} /> Premium Access
+                    </div>
+                    <h2 className="text-2xl md:text-3xl font-black text-slate-900">Unlock unlimited AI credits</h2>
+                    <p className="text-slate-600 mt-2 max-w-2xl">
+                        Get faster processing, advanced quizzes, flashcards, and full learning roadmaps with Premium plans.
+                    </p>
+                </div>
+
+                <button
+                    type="button"
+                    onClick={() => setShowPremiumModal(true)}
+                    className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl bg-slate-900 text-white font-black hover:bg-slate-800 transition-colors shadow-lg"
+                >
+                    <Sparkles size={18} /> View Premium Plans
+                </button>
+            </div>
 
             {/* Upcoming Tasks Section */}
             {todos.length > 0 && (
@@ -225,6 +247,12 @@ const Dashboard = () => {
                     </div>
                 )}
             </div>
+
+            <PremiumPlansModal
+                isOpen={showPremiumModal}
+                onClose={() => setShowPremiumModal(false)}
+                title="Go Premium from Your Dashboard"
+            />
         </div>
     );
 };

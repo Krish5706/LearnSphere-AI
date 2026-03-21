@@ -1,10 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { ShieldCheck, LayoutDashboard, FileUp, CheckSquare, Layers } from 'lucide-react';
+import { ShieldCheck, LayoutDashboard, FileUp, CheckSquare, Layers, Crown } from 'lucide-react';
 import ProfileDropdown from './Dropdown';
+import PremiumPlansModal from './PremiumPlansModal';
 
 const Navbar = () => {
   const location = useLocation();
+  const [showPremiumModal, setShowPremiumModal] = useState(false);
 
   // Security Helper: Check if the user is currently on an active route
   const isActive = (path) => location.pathname === path || location.pathname.startsWith(path + '/') ? "bg-blue-600 text-white" : "text-slate-600 hover:bg-slate-100";
@@ -32,10 +34,24 @@ const Navbar = () => {
           <CheckSquare size={18} /> Tasks
         </Link>
 
+        <button
+          type="button"
+          onClick={() => setShowPremiumModal(true)}
+          className="flex items-center gap-2 px-4 py-2 rounded-lg transition-all font-bold bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100"
+        >
+          <Crown size={18} /> Premium
+        </button>
+
         <div className="h-6 w-[1px] bg-slate-200 mx-2"></div>
 
         <ProfileDropdown />
       </div>
+
+      <PremiumPlansModal
+        isOpen={showPremiumModal}
+        onClose={() => setShowPremiumModal(false)}
+        title="Upgrade to LearnSphere Premium"
+      />
     </nav>
   );
 };

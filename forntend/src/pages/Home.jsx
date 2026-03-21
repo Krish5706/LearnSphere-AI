@@ -1,9 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Shield, Zap, ArrowRight, BookOpen, FileText, Map, CheckSquare } from 'lucide-react';
+import { Shield, Zap, ArrowRight, BookOpen, FileText, Map, CheckSquare, Crown } from 'lucide-react';
 import { motion } from 'framer-motion';
+import PremiumPlansModal from '../components/common/PremiumPlansModal';
 
 const Home = () => {
+  const [showPremiumModal, setShowPremiumModal] = useState(false);
+
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -29,15 +32,29 @@ const Home = () => {
         transition={{ duration: 0.8 }}
       >
         <div className="max-w-5xl mx-auto px-6 text-center">
-          <motion.div
-            className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-sm font-medium mb-6 border border-blue-100"
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.2, duration: 0.5 }}
-          >
-            <Shield size={14} />
-            Secure AI Processing
-          </motion.div>
+          <div className="flex flex-wrap items-center justify-center gap-3 mb-6">
+            <motion.div
+              className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-sm font-medium border border-blue-100"
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.2, duration: 0.5 }}
+            >
+              <Shield size={14} />
+              Secure AI Processing
+            </motion.div>
+
+            <motion.button
+              type="button"
+              onClick={() => setShowPremiumModal(true)}
+              className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-50 text-amber-700 text-sm font-bold border border-amber-200 hover:bg-amber-100 transition-colors"
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.3, duration: 0.5 }}
+            >
+              <Crown size={14} />
+              Premium Plans
+            </motion.button>
+          </div>
           <motion.h1
             className="text-6xl font-extrabold text-slate-900 mb-6 tracking-tight"
             initial={{ opacity: 0, y: 30 }}
@@ -175,6 +192,12 @@ const Home = () => {
           </p>
         </motion.div>
       </motion.section>
+
+      <PremiumPlansModal
+        isOpen={showPremiumModal}
+        onClose={() => setShowPremiumModal(false)}
+        title="Unlock LearnSphere Premium"
+      />
     </div>
   );
 };
