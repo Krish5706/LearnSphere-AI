@@ -421,8 +421,8 @@ const PremiumPlansModal = ({ isOpen, onClose, title = 'Upgrade to Premium' }) =>
             )}
 
             {paymentStep === 'completed' && (
-              <div className="mt-5 space-y-4">
-                <div className="flex flex-col items-center text-center">
+              <div className="mt-5 space-y-4 max-h-[70vh] overflow-y-auto pb-6 scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-slate-900">
+                <div className="flex flex-col items-center text-center"> 
                   <div className="relative h-20 w-20 flex items-center justify-center">
                     {showSuccessBurst && <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400/35 animate-ping" />}
                     <span className="absolute inline-flex h-[72px] w-[72px] rounded-full bg-emerald-500/15" />
