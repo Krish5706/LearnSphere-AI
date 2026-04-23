@@ -35,90 +35,92 @@ function App() {
         <Navbar />
         
         <main className="flex-grow">
-          <Routes>
-            {/* Public Routes */}
-            <Route path="/" element={<Home />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Suspense fallback={<LoadingFallback />}>
+            <Routes>
+              {/* Public Routes */}
+              <Route path="/" element={<Home />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
 
-            {/* Protected Secure Routes */}
-            <Route 
-              path="/upload" 
-              element={
-                <ProtectedRoute>
-                  <Upload />
-                </ProtectedRoute>
-              } 
-            />
-            <Route
-              path="/dashboard"
-              element={
-                <ProtectedRoute>
-                  <Dashboard />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/todos"
-              element={
-                <ProtectedRoute>
-                  <Todo />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/document/:id"
-              element={
-                <ProtectedRoute>
-                  <Document />
-                </ProtectedRoute>
-              }
-            />
-            <Route 
-              path="/quiz/:documentId" 
-              element={
-                <ProtectedRoute>
-                  <Quiz />
-                </ProtectedRoute>
-              } 
-            />
-            <Route
-              path="/settings"
-              element={
-                <ProtectedRoute>
-                  <Settings />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/profile"
-              element={
-                <ProtectedRoute>
-                  <Profile />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/flashcards"
-              element={
-                <ProtectedRoute>
-                  <Flashcards />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/flashcards/*"
-              element={
-                <ProtectedRoute>
-                  <Flashcards />
-                </ProtectedRoute>
-              }
-            />
+              {/* Protected Secure Routes */}
+              <Route 
+                path="/upload" 
+                element={
+                  <ProtectedRoute>
+                    <Upload />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route
+                path="/dashboard"
+                element={
+                  <ProtectedRoute>
+                    <Dashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/todos"
+                element={
+                  <ProtectedRoute>
+                    <Todo />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/document/:id"
+                element={
+                  <ProtectedRoute>
+                    <Document />
+                  </ProtectedRoute>
+                }
+              />
+              <Route 
+                path="/quiz/:documentId" 
+                element={
+                  <ProtectedRoute>
+                    <Quiz />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route
+                path="/settings"
+                element={
+                  <ProtectedRoute>
+                    <Settings />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/profile"
+                element={
+                  <ProtectedRoute>
+                    <Profile />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/flashcards"
+                element={
+                  <ProtectedRoute>
+                    <Flashcards />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/flashcards/*"
+                element={
+                  <ProtectedRoute>
+                    <Flashcards />
+                  </ProtectedRoute>
+                }
+              />
 
-            {/* Fallback for 404 - Security best practice: redirect to home or custom 404 */}
-            <Route path="*" element={<Home />} />
-          </Routes>
+              {/* Fallback for 404 - Security best practice: redirect to home or custom 404 */}
+              <Route path="*" element={<Home />} />
+            </Routes>
+          </Suspense>
         </main>
 
         <Footer />

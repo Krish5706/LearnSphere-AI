@@ -32,5 +32,15 @@ export const submitQuizAnswers = (documentId, answers) =>
 export const getQuizData = (documentId) =>
     api.get(`/documents/${documentId}/quiz`);
 
+// Mind Map Services
+export const generateMindMap = (payload) =>
+    api.post('/mindmap/generate', payload);
+
+export const saveMindMap = (payload) =>
+    api.post('/mindmap/save', payload);
+
+export const getMindMapByDocument = (docId) =>
+    api.get(`/mindmap/${docId}`);
+
 
 export default api;

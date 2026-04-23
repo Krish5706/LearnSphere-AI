@@ -11,6 +11,7 @@ import Roadmap from '../components/Roadmap';
 import EnhancedRoadmap from '../components/EnhancedRoadmap';
 import PremiumPlansModal from '../components/common/PremiumPlansModal';
 import { FlashcardGenerator } from '../components/flashcard';
+import MindMap from '../components/MindMap';
 import { FileText, BrainCircuit, GraduationCap, Loader2, ChevronLeft, Lock, Sparkles, BarChart3, BookText, Map, Layers } from 'lucide-react';
 
 const Document = () => {
@@ -107,6 +108,9 @@ const Document = () => {
                     </button>
                     <button onClick={() => setActiveTab('flashcards')} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'flashcards' ? 'bg-white text-blue-600' : 'text-slate-600'}`}>
                         <Layers size={16} /> Flashcards
+                    </button>
+                    <button onClick={() => setActiveTab('mindmap')} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'mindmap' ? 'bg-white text-blue-600' : 'text-slate-600'}`}>
+                        <BrainCircuit size={16} /> Mind Map
                     </button>
                     <button onClick={() => setActiveTab('notes')} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'notes' ? 'bg-white text-blue-600' : 'text-slate-600'}`}>
                         <BookText size={16} /> Notes
@@ -252,6 +256,13 @@ const Document = () => {
                         documentId={id}
                         documentName={doc.fileName}
                         hasKeyPoints={doc.keyPoints?.length > 0}
+                    />
+                )}
+
+                {activeTab === 'mindmap' && (
+                    <MindMap
+                        documentId={id}
+                        documentText={doc?.pdfMetadata?.extractedText || ''}
                     />
                 )}
             </div>

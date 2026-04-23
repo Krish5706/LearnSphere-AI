@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { FileText, BookOpen, BrainCircuit, Zap, Loader2, Layers } from 'lucide-react';
 import api from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
 
 const ProcessingOptions = ({ documentId, onProcessingComplete, onCancel }) => {
+    const { user, setUser } = useAuth();
     const [selectedOption, setSelectedOption] = useState(null);
     const [summaryType, setSummaryType] = useState('short');
     const [learnerLevel, setLearnerLevel] = useState('beginner');
@@ -42,6 +44,13 @@ const ProcessingOptions = ({ documentId, onProcessingComplete, onCancel }) => {
             color: 'pink',
         },
         {
+            id: 'mindmap',
+            title: 'Generate Mind Map',
+            description: 'Create an editable visual mind map from your document',
+            icon: BrainCircuit,
+            color: 'green',
+        },
+        {
             id: 'comprehensive',
             title: 'Complete Analysis',
             description: 'Get everything: summaries and a quiz',
@@ -62,17 +71,27 @@ const ProcessingOptions = ({ documentId, onProcessingComplete, onCancel }) => {
         try {
             let response;
 
-            // Summary, Quiz, and Comprehensive use Gemini (requires credits)
-            const processingType = selectedOption;
+            if (selectedOption === 'mindmap') {
+                response = await api.post('/mindmap/generate', {
+                    documentId,
+                    userId: user?._id,
+                });
+            } else {
+                const processingType = selectedOption;
 
-            response = await api.post('/documents/process', {
-                documentId,
-                processingType,
-                summaryType: selectedOption === 'summary' ? summaryType : undefined,
-                learnerLevel: selectedOption === 'roadmap' ? learnerLevel : undefined,
-                flashcardCount: selectedOption === 'flashcard' ? flashcardCount : undefined,
-                difficulty: selectedOption === 'flashcard' ? flashcardDifficulty : undefined,
-            });
+                response = await api.post('/documents/process', {
+                    documentId,
+                    processingType,
+                    summaryType: selectedOption === 'summary' ? summaryType : undefined,
+                    learnerLevel: selectedOption === 'roadmap' ? learnerLevel : undefined,
+                    flashcardCount: selectedOption === 'flashcard' ? flashcardCount : undefined,
+                    difficulty: selectedOption === 'flashcard' ? flashcardDifficulty : undefined,
+                });
+            }
+
+            if (response?.data?.user) {
+                setUser(response.data.user);
+            }
 
             onProcessingComplete(response.data);
         } catch (err) {
