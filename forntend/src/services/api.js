@@ -22,8 +22,8 @@ export const uploadDocument = (formData) => api.post('/documents/upload', formDa
 export const deleteDocument = (id) => api.delete(`/documents/${id}`);
 
 // Processing Services
-export const processPDF = (documentId, processingType) => 
-    api.post('/documents/process', { documentId, processingType });
+export const processPDF = (documentId, processingType, summaryType) => 
+    api.post('/documents/process', { documentId, processingType, summaryType });
 
 // Quiz Services
 export const submitQuizAnswers = (documentId, answers) => 

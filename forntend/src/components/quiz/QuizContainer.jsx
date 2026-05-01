@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import QuizPage from './QuizPage';
 import QuizResultsAnalysis from './QuizResultsAnalysis';
 import { Loader2, AlertCircle } from 'lucide-react';

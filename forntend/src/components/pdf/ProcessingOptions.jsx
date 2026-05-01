@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FileText, BookOpen, BrainCircuit, Zap, Loader2, Layers } from 'lucide-react';
+import { FileText, BookOpen, BrainCircuit, Zap, Loader2, Layers, Share2 } from 'lucide-react';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 
@@ -47,15 +47,8 @@ const ProcessingOptions = ({ documentId, onProcessingComplete, onCancel }) => {
             id: 'mindmap',
             title: 'Generate Mind Map',
             description: 'Create an editable visual mind map from your document',
-            icon: BrainCircuit,
+            icon: Share2,
             color: 'green',
-        },
-        {
-            id: 'comprehensive',
-            title: 'Complete Analysis',
-            description: 'Get everything: summaries and a quiz',
-            icon: Zap,
-            color: 'amber',
         },
     ];
 

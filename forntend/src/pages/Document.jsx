@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import api, { getDocumentById } from '../services/api';
+import api, { getDocumentById, processPDF } from '../services/api';
 import ShortSummary from '../components/summary/ShortSummary';
 import MediumSummary from '../components/summary/MediumSummary';
 import DetailedSummary from '../components/summary/DetailedSummary';
@@ -22,7 +22,35 @@ const Document = () => {
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('summary');
     const [summaryType, setSummaryType] = useState('short');
+    const [processingFeature, setProcessingFeature] = useState('');
+    const [processingError, setProcessingError] = useState('');
     const [showPremiumModal, setShowPremiumModal] = useState(false);
+
+    const isShortGenerated = !!doc?.summary?.short;
+    const isMediumGenerated = !!doc?.summary?.medium;
+    const isDetailedGenerated = !!doc?.summary?.detailed;
+    const isRoadmapGenerated = !!doc?.enhancedRoadmap || (!!doc?.roadmap && doc.roadmap.length > 0);
+    const isQuizGenerated = !!doc?.quizzes && doc.quizzes.length > 0;
+
+    const handleGenerateFeature = async (feature, summaryTypeParam) => {
+        if (!canUseAI) {
+            setShowPremiumModal(true);
+            return;
+        }
+
+        setProcessingError('');
+        setProcessingFeature(feature);
+
+        try {
+            await processPDF(id, feature, summaryTypeParam);
+            const res = await getDocumentById(id);
+            setDoc(res.data);
+        } catch (err) {
+            setProcessingError(err.response?.data?.message || 'Failed to generate content. Please try again.');
+        } finally {
+            setProcessingFeature('');
+        }
+    };
 
     const handleDownloadReport = async (reportType) => {
         try {
@@ -122,6 +150,26 @@ const Document = () => {
             <div className="p-8 max-w-7xl mx-auto">
                 {activeTab === 'roadmap' && (
                     <>
+                        {!isRoadmapGenerated && (
+                            <div className="rounded-3xl border border-slate-200 bg-slate-50 p-8 text-center mb-6">
+                                <p className="text-slate-600 mb-4 text-base">
+                                    Roadmap content has not been generated for this document yet.
+                                </p>
+                                <button
+                                    type="button"
+                                    onClick={() => handleGenerateFeature('roadmap')}
+                                    disabled={processingFeature === 'roadmap'}
+                                    className="inline-flex items-center justify-center rounded-2xl bg-blue-600 text-white px-6 py-3 font-bold hover:bg-blue-700 transition-all disabled:opacity-60"
+                                >
+                                    {processingFeature === 'roadmap' ? 'Generating Roadmap...' : 'Generate Roadmap'}
+                                </button>
+                            </div>
+                        )}
+                        {processingError && activeTab === 'roadmap' && (
+                            <div className="p-4 rounded-2xl border border-red-200 bg-red-50 text-red-700 text-sm font-medium mb-6">
+                                {processingError}
+                            </div>
+                        )}
                         {doc.enhancedRoadmap ? (
                             <EnhancedRoadmap
                                 enhancedRoadmap={doc.enhancedRoadmap}
@@ -147,7 +195,12 @@ const Document = () => {
 
                 {activeTab === 'summary' && (
                     <div className="space-y-6">
-                        {/* Summary Type Selector */}
+                        {processingError && activeTab === 'summary' && (
+                            <div className="p-4 rounded-2xl border border-red-200 bg-red-50 text-red-700 text-sm font-medium mb-6">
+                                {processingError}
+                            </div>
+                        )}
+
                         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                             <div className="bg-slate-50 px-6 py-4 border-b border-slate-200">
                                 <h3 className="font-bold text-slate-800 mb-4">Choose Summary Length</h3>
@@ -183,29 +236,84 @@ const Document = () => {
                             </div>
                         </div>
 
-                        {/* Summary Content */}
                         {summaryType === 'short' && (
-                            <ShortSummary
-                                text={doc.summary?.short || 'Short summary not available'}
-                                fileName={doc.fileName}
-                                onDownloadReport={handleDownloadReport}
-                            />
+                            <>
+                                {!isShortGenerated ? (
+                                    <div className="rounded-3xl border border-slate-200 bg-slate-50 p-8 text-center">
+                                        <p className="text-slate-600 mb-4 text-base">
+                                            Short summary has not been generated for this document yet.
+                                        </p>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleGenerateFeature('summary', 'short')}
+                                            disabled={processingFeature === 'summary'}
+                                            className="inline-flex items-center justify-center rounded-2xl bg-blue-600 text-white px-6 py-3 font-bold hover:bg-blue-700 transition-all disabled:opacity-60"
+                                        >
+                                            {processingFeature === 'summary' ? 'Generating Summary...' : 'Generate Short Summary'}
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <ShortSummary
+                                        text={doc.summary?.short || 'Short summary not available'}
+                                        fileName={doc.fileName}
+                                        onDownloadReport={handleDownloadReport}
+                                    />
+                                )}
+                            </>
                         )}
+
                         {summaryType === 'medium' && (
-                            <MediumSummary
-                                content={doc.summary?.medium || 'Medium summary not available'}
-                                keyInsights={doc.keyPoints || []}
-                                fileName={doc.fileName}
-                                onDownloadReport={handleDownloadReport}
-                            />
+                            <>
+                                {!isMediumGenerated ? (
+                                    <div className="rounded-3xl border border-slate-200 bg-slate-50 p-8 text-center">
+                                        <p className="text-slate-600 mb-4 text-base">
+                                            Medium summary has not been generated for this document yet.
+                                        </p>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleGenerateFeature('summary', 'medium')}
+                                            disabled={processingFeature === 'summary'}
+                                            className="inline-flex items-center justify-center rounded-2xl bg-blue-600 text-white px-6 py-3 font-bold hover:bg-blue-700 transition-all disabled:opacity-60"
+                                        >
+                                            {processingFeature === 'summary' ? 'Generating Summary...' : 'Generate Medium Summary'}
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <MediumSummary
+                                        content={doc.summary?.medium || 'Medium summary not available'}
+                                        keyInsights={doc.keyPoints || []}
+                                        fileName={doc.fileName}
+                                        onDownloadReport={handleDownloadReport}
+                                    />
+                                )}
+                            </>
                         )}
+
                         {summaryType === 'detailed' && (
-                            <DetailedSummary
-                                content={doc.summary?.detailed || 'Detailed summary not available'}
-                                fileName={doc.fileName}
-                                keyInsights={doc.keyPoints || []}
-                                onDownloadReport={handleDownloadReport}
-                            />
+                            <>
+                                {!isDetailedGenerated ? (
+                                    <div className="rounded-3xl border border-slate-200 bg-slate-50 p-8 text-center">
+                                        <p className="text-slate-600 mb-4 text-base">
+                                            Detailed summary has not been generated for this document yet.
+                                        </p>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleGenerateFeature('summary', 'detailed')}
+                                            disabled={processingFeature === 'summary'}
+                                            className="inline-flex items-center justify-center rounded-2xl bg-blue-600 text-white px-6 py-3 font-bold hover:bg-blue-700 transition-all disabled:opacity-60"
+                                        >
+                                            {processingFeature === 'summary' ? 'Generating Summary...' : 'Generate Detailed Summary'}
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <DetailedSummary
+                                        content={doc.summary?.detailed || 'Detailed summary not available'}
+                                        fileName={doc.fileName}
+                                        keyInsights={doc.keyPoints || []}
+                                        onDownloadReport={handleDownloadReport}
+                                    />
+                                )}
+                            </>
                         )}
                     </div>
                 )}
@@ -237,6 +345,28 @@ const Document = () => {
                                         View Premium Plans
                                     </button>
                                 </div>
+                            </div>
+                        )}
+
+                        {!isQuizGenerated && !isRestricted && (
+                            <div className="rounded-3xl border border-slate-200 bg-slate-50 p-8 text-center mb-6">
+                                <p className="text-slate-600 mb-4 text-base">
+                                    Quiz content has not been generated for this document yet.
+                                </p>
+                                <button
+                                    type="button"
+                                    onClick={() => handleGenerateFeature('quiz')}
+                                    disabled={processingFeature === 'quiz'}
+                                    className="inline-flex items-center justify-center rounded-2xl bg-blue-600 text-white px-6 py-3 font-bold hover:bg-blue-700 transition-all disabled:opacity-60"
+                                >
+                                    {processingFeature === 'quiz' ? 'Generating Quiz...' : 'Generate Quiz'}
+                                </button>
+                            </div>
+                        )}
+
+                        {processingError && activeTab === 'quiz' && (
+                            <div className="p-4 rounded-2xl border border-red-200 bg-red-50 text-red-700 text-sm font-medium mb-6">
+                                {processingError}
                             </div>
                         )}
 

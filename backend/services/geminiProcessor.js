@@ -39,8 +39,11 @@ class GeminiProcessor {
                 const result = await this.model.generateContent(prompt);
                 return result.response.text();
             } catch (error) {
-                // Check for quota exceeded - switch to Groq
-                if (error.message.includes('429') || error.message.includes('quota') || error.message.includes('Quota')) {
+                const message = error.message || '';
+                const isQuotaError = /429|quota|Quota/i.test(message);
+                const isHighDemand = /503|Service Unavailable|high demand|temporarily unavailable|unavailable/i.test(message);
+
+                if (isQuotaError) {
                     console.log('🔄 Gemini quota exceeded, switching to Groq fallback...');
                     if (this.groqClient) {
                         this.useGroqFallback = true;
@@ -48,7 +51,17 @@ class GeminiProcessor {
                     }
                     throw new Error(`Gemini quota exceeded and no Groq fallback available: ${error.message}`);
                 }
-                
+
+                if (isHighDemand && this.modelName !== 'gemini-1.5-flash') {
+                    console.log(`🔄 Gemini model ${this.modelName} is unavailable, retrying with gemini-1.5-flash...`);
+                    this.modelName = 'gemini-1.5-flash';
+                    this.model = this.genAI.getGenerativeModel({ model: this.modelName });
+                    if (attempt < maxRetries) {
+                        await new Promise(r => setTimeout(r, 2000 * attempt));
+                        continue;
+                    }
+                }
+
                 if (attempt === maxRetries) {
                     throw error;
                 }
