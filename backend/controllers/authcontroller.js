@@ -56,7 +56,8 @@ exports.register = async (req, res, next) => {
             return res.status(400).json({ message: "Password must be at least 8 characters" });
         }
 
-        const newUser = await User.create({ name, email, password });
+        // Ensure new users get 20 free credits by default
+        const newUser = await User.create({ name, email, password, credits: 20 });
         console.log('✅ User created:', { id: newUser._id, email: newUser.email });
         
         const token = jwt.sign({ id: newUser._id }, process.env.JWT_SECRET, {

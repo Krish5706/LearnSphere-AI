@@ -17,7 +17,7 @@ import { FileText, BrainCircuit, GraduationCap, Loader2, ChevronLeft, Lock, Spar
 const Document = () => {
     const { id } = useParams();
     const navigate = useNavigate();
-    const { user, canUseAI } = useAuth(); // Get credit status from Auth
+    const { user, canUseAI, setUser } = useAuth(); // Get credit status from Auth
     const [doc, setDoc] = useState(null);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('summary');
@@ -42,7 +42,10 @@ const Document = () => {
         setProcessingFeature(feature);
 
         try {
-            await processPDF(id, feature, summaryTypeParam);
+            const response = await processPDF(id, feature, summaryTypeParam);
+            if (response?.data?.user) {
+                setUser(response.data.user);
+            }
             const res = await getDocumentById(id);
             setDoc(res.data);
         } catch (err) {
@@ -335,7 +338,7 @@ const Document = () => {
                                         Unlock Pro Analysis
                                     </h2>
                                     <p className="text-slate-500 mb-6 text-sm">
-                                        You've used your 5 free credits. Subscribe now to unlock Quizzes and Unlimited PDF processing.
+                                        You've used your 20 free credits. Subscribe now to unlock Quizzes and Unlimited PDF processing.
                                     </p>
                                     <button
                                         type="button"

@@ -33,7 +33,7 @@ const Register = () => {
                         <UserPlus size={32} />
                     </div>
                     <h2 className="text-3xl font-black text-slate-900">Create Account</h2>
-                    <p className="text-slate-500 mt-2 font-medium">Get 5 free AI analysis credits instantly.</p>
+                    <p className="text-slate-500 mt-2 font-medium">Get 20 free AI analysis credits instantly.</p>
                 </div>
 
                 {error && (

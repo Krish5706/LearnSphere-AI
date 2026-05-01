@@ -20,7 +20,7 @@ const userSchema = new mongoose.Schema({
     },
     credits: {
         type: Number,
-        default: 5 // Default free credits for new users
+        default: 20 // Default free credits for new users
     },
     isSubscribed: {
         type: Boolean,
